@@ -7,7 +7,7 @@ Junction 2026, Hype Areena, Espoo, Finland, 13–15 November 2026.
 
 | Draft | Challenge | Partner |
 |---|---|---|
-| Evil Club 1 | Break the Agent | AfterQuery |
+| Evil Club 1 | Break the Agent: agents working with copies of themselves ([direction](#our-break-the-agent-direction-agents-working-with-copies-of-themselves)) | AfterQuery |
 | Evil Club 2 | Spread | Bahn Express ([strategy](spread/STRATEGY.md), [working notes](spread/NOTES.md)) |
 
 ## AfterQuery: Break the Agent
@@ -37,52 +37,52 @@ Build a reinforcement learning (RL) environment where today's best AI agents fal
 - **Schedule:** ranking rounds open Friday at 19:30. Registration for the final closes Sunday at 07:30, and the final starts at 08:00 (one secret week, about 34 minutes). The 10 teams with the highest margin pitch to the jury, which judges the system's elegance, clarity, creativity and robustness.
 - **Prizes:** €2,000, €1,000 and €500.
 
-## Option A: one simulator for both challenges
+## Our Break the Agent direction: agents working with copies of themselves
 
-Build a local simulator based on the Spread handbook. Your Spread bot doubles as AfterQuery's reference run.
+**Premise:** agents are trained to work alone. Put several copies of the same model on one task where none of them can finish alone, and they collaborate badly. They duplicate work, overwrite each other and assume a teammate already knows what they know. Because the teammate is the same model, it "feels" like shared context, but it isn't. The benchmark measures that gap.
 
-**For**
-- **Shared work.** A local simulator lets you test the Spread bot without waiting for ranking rounds. The simulator and the bot are also about half the AfterQuery entry (the environment and the reference run).
-- **The difficulty is real.** The hard part isn't arithmetic. The agent has to learn while it plays: how the competitor prices, how drivers respond to fees, and when to try new prices versus use what works. That's a classic RL problem and a solid case for "meaningful difficulty".
-- **A large, reproducible gap is likely.** A tuned bot should reliably beat an LLM agent, and fixed seeds make every week replay the same way.
-- **A strong reward to start from.** Margin with a 90% on-time rule gives zero for doing nothing and blocks the "accept every job" cheat.
+**Scope for now:** every team member is the same model. Mixed teams (a weaker or stronger model as a teammate) come later and reuse the same environment.
 
-**Against**
-- The world comes from another partner. "Why this setting?" opens the demo, and "we copied another partner's challenge" is a weak answer.
-- Other teams may port Spread too.
-- How good it looks depends on how well your own simulator is built.
+> Full build plan: [break-the-agent/PLAN.md](break-the-agent/PLAN.md). It replaces the earlier "Unreliable Informants" idea and keeps its Harbor + Docker layout, signed log, replay-based verifier and baselines.
 
-**If you choose it**
-- Design your own models of drivers and the competitor. The handbook probably doesn't reveal them, and designing them makes the world yours.
-- Frame the agent's failures as "it can't learn the market", not "it can't do maths".
-- Check Junction's rules on entering one project in several challenges and on partners owning the work. Also ask Bahn at their booth whether they mind you copying their world.
+### The setup
+- **Team:** the agent under test (Harbor's `main` container, run through OpenCode) plus 1–2 copies of the same model. The copies run as extra services in the task's `docker-compose.yaml`.
+- **Split ownership:** each agent sees a different part of the task (spec, logs, data) and may only write to its own files or tools. No single agent has everything it needs, so collaboration is required, not optional. Together the team has all the information and tools, so nothing is withheld.
+- **Channel:** agents talk only through a message-board tool on our MCP sidecar. The sidecar logs every message, edit and tool call to a signed log that the agents can't write to.
+- **Task family:** small, seeded engineering tasks with hidden tests, such as fixing a bug that spans two agents' modules or implementing a feature whose spec is split between agents.
 
-## Option B: a separate AfterQuery environment
+### What we measure
+| Axis | How |
+|---|---|
+| Success | Share of hidden tests passing, from the verifier |
+| Cost-efficiency | Tokens and messages spent by the whole team |
+| Speed | Simulated steps until submission (counted in operations, not wall-clock, so latency doesn't matter) |
+| Reliability | Same seed across 3 runs: does the team succeed every time? |
 
-### Hidden-law lab
-The agent runs experiments on a simulated system governed by rules it can't see, for example a made-up chemistry or an ecosystem. Each experiment costs budget. At the end it predicts outcomes for test cases it never saw.
+### Reward (per episode, 0..1)
+- Correctness: hidden-test pass rate, computed by replaying the logged actions.
+- A capped penalty for cost and steps, always worth less than one solved part, so doing the task well beats being cheap.
+- Nothing submitted, or an early stop, scores 0. That covers the do-nothing and stop-early baselines.
+- Writes outside an agent's own files are rejected by the sidecar, and the logs are HMAC-signed, so nobody can fake progress.
 
-- **Reward:** prediction accuracy minus experiment cost. The test cases are hidden, so the reward is hard to exploit.
-- **Typical agent failures:** sticking with the first hypothesis, running experiments that can't tell two hypotheses apart, and stopping too early.
-- **Reference run:** a Bayesian experiment-design solver that picks the most informative experiment each step.
-- **Risks:**
-  - "Discover the hidden rules" is a fairly common benchmark genre.
-  - Judges could mark the gap down as "withheld information" unless the agent is told what kinds of rules are possible.
-  - Frontier models with code tools may do well in simple worlds, so getting a clear gap may take tuning.
-  - You build everything from scratch.
+### Failure modes we expect (the 30 "meaningful difficulty" points)
+- **Shared-mind illusion:** an agent assumes its copy already knows its half of the spec and never sends it.
+- **Duplicated work:** two copies solve the same sub-problem while another goes untouched.
+- **Overwrite or conflict:** incompatible changes to a shared interface.
+- **Blind trust:** accepting a teammate's "done" without checking it against its own part of the spec.
+- **Chatter:** spending a large share of the budget on messages that carry no information.
 
-### Other ideas
-- **On-call incident environment:** a simulated set of services with one injected fault. The agent investigates logs, metrics and traces, then restarts or rolls back services. It scores only if the simulator confirms the fix worked.
-- **Rules-maze bureaucracy:** a permit or benefits process with many interacting rules. The agent has to finish the paperwork in a valid order. Reward is easy to check, and it tests tracking state over many steps.
-- **Tieto's code-review challenge as an environment:** the agent reviews AI-written pull requests with planted bugs. It earns points for real catches and loses points for false alarms. Uses the branches Tieto provides.
-- **Valio Aimo's purchasing challenge as an environment:** the agent orders within its approval limits. "Send everything to a human for approval" is a lazy baseline that should score low.
+### Reference run
+A scripted team (or the same model with a fixed coordination protocol: split the work, agree on interfaces, hand off, verify) that reliably solves each seed. It must beat the free-form team by a clear and reproducible margin.
 
-## Recommendation
+### Open questions (ask AfterQuery mentors Saturday)
+- Is it acceptable for teammates to be extra model processes inside the environment, using the same model and credits as the agent under test?
+- Teammates run on an LLM, so results vary. Fixed seeds plus temperature 0 may not be enough. Report pass rate across k runs and check that the gap holds across all of them.
+- Is a scripted team acceptable as the "stronger reference run"?
 
-- **If the goal is the most prize money for your hours:** Option A, with your own driver and competitor models, after checking the rules.
-- **If the goal is to stand out to AfterQuery** (the work trial, an original project): Option B. Pick the environment because it shows a failure that matters, not because it's quick.
-
-Still to decide: what "nobility" means for the team, originality or real-world usefulness.
+### Later
+- Mixed teams: the same tasks with a weaker or stronger teammate.
+- Tiebreaker: train a small model on the reference team's trajectories and show that it collaborates better.
 
 ## Checklist for any AfterQuery entry
 
