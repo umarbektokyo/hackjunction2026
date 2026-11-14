@@ -73,3 +73,14 @@ node dist/cli.js log
 Notes: the sample branches were cut from the repository's default branch (a dependabot branch), so
 review them against `origin/HEAD`; against `origin/master` the diff also contains someone else's
 PolySharp bump. Model calls are cached under `.work/` so a re-run is free and reproducible.
+
+## Status and hand-over (14 Nov, judging 15 Nov)
+
+- Measurement: `node dist/cli.js metrics` writes [`reports/METRICS.md`](reports/METRICS.md) from the
+  reports and `decisions/log.jsonl`.
+- Decisions: `decisions/sign.sh "Name"` holds three proposed rejects (2234, 2297, 2283); it must be
+  run by the accountable human, not by a model. 2129 waits for an `--exec` run.
+- The visual half of this entry (a function-level reviewer UI, Python) is on branch
+  `earned-trust`. Its `earned-trust/HANDOFF.md` is the hand-over for both halves and lists the next
+  tasks: feed these reports into that UI, then merge the two (both use `earned-trust/`, so agree a
+  layout first).

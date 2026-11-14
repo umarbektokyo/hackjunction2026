@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { computeFacts } from './facts.ts';
 import { review } from './review.ts';
 import { decide, readDecisions } from './decide.ts';
+import { changeMetrics, loadReports, renderMetrics } from './metrics.ts';
 
 const USAGE = `cev — claims → evidence → verdict review for agent-written changes
 
@@ -12,6 +13,7 @@ const USAGE = `cev — claims → evidence → verdict review for agent-written 
   cev rerender --report <dir>              recompute recommendation + report.md from report.json (no model calls)
   cev decide  --report <dir> --by "<name>" (accept|reject) [--answer C1="what I checked"]... [--override "<reason>"] [--note "..."] [--log decisions/log.jsonl]
   cev log     [--log decisions/log.jsonl]
+  cev metrics [--reports reports] [--log decisions/log.jsonl]   writes <reports>/METRICS.md
 
 Model: the logged-in \`claude\` CLI (CEV_MODEL=sonnet|opus|haiku, default sonnet).`;
 
@@ -35,6 +37,7 @@ async function main() {
       override: { type: 'string' },
       note: { type: 'string' },
       log: { type: 'string', default: 'decisions/log.jsonl' },
+      reports: { type: 'string', default: 'reports' },
     },
   });
 
@@ -93,6 +96,16 @@ async function main() {
     }
     case 'log': {
       for (const d of readDecisions(values.log!)) console.log(`${d.at}  ${d.decision.padEnd(6)} ${d.requirementId.padEnd(10)} ${d.head.padEnd(24)} by ${d.by} (report ${d.reportHash}${d.override ? ', OVERRIDE: ' + d.override : ''})`);
+      return;
+    }
+    case 'metrics': {
+      const { writeFileSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const decisions = readDecisions(values.log!);
+      const ms = loadReports(values.reports!).map((r) => changeMetrics(r, decisions));
+      const md = renderMetrics(ms);
+      writeFileSync(join(values.reports!, 'METRICS.md'), md);
+      console.log(md);
       return;
     }
     default:
