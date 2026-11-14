@@ -1,0 +1,10 @@
+{
+  "note": "Synthetic people. The routing table is the point: every category has exactly one named owner.",
+  "routing": {
+    "diagnostic-policy": {"name": "Aino Virtanen", "role": "Analyzer maintainer"},
+    "public-contract": {"name": "Mikko Laine", "role": "Docs and public API owner"},
+    "security": {"name": "Leena Koskinen", "role": "Security champion"},
+    "requirement-ambiguity": {"name": "Jussi Heikkinen", "role": "Product owner"}
+  },
+  "approver": {"name": "Sara Nieminen", "role": "Change approver, accountable for the merge"}
+}

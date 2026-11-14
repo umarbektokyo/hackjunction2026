@@ -2,3 +2,7 @@ node_modules/
 dist/
 .work/
 *.log
+sample-repo/
+.venv/
+__pycache__/
+sample-wadden/

@@ -1,0 +1,16 @@
+{
+  "issue": 2283,
+  "title": "Generator and analyzer crash on a closed generic struct from a referenced assembly",
+  "url": "https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/2283",
+  "repo": "sample-repo",
+  "base": "ju26-issue-2283~1",
+  "head": "ju26-issue-2283",
+  "author": "agent (commit 9df83c38, branch ju26-issue-2283)",
+  "label": "#2283",
+  "language": "C#",
+  "tests": {
+    "kind": "dotnet",
+    "project": "tests/MessagePack.SourceGenerator.Tests",
+    "src": "src"
+  }
+}

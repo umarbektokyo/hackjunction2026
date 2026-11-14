@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "earned-trust",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd earned-trust && exec python3 -m trust.serve 2283 --no-open"],
+      "port": 8283
+    }
+  ]
+}

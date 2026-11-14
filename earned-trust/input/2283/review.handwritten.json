@@ -1,0 +1,590 @@
+{
+  "source": "handwritten",
+  "source_note": "Written by hand in the shape the reviewer model returns (no API key at the hackathon). Every check below is still executed by the builder; a wrong claim shows as 'does not hold'.",
+  "requirements": [
+    {
+      "id": "REQ-2283-1",
+      "kind": "functional",
+      "text": "The generator and the analyzer do not throw when a [MessagePackObject] type has a member whose type is a closed generic struct or record struct declared in a referenced assembly.",
+      "source": "issue: Bug description, Expected behavior"
+    },
+    {
+      "id": "REQ-2283-2",
+      "kind": "functional",
+      "text": "In that case the consuming assembly still gets its generated resolver.",
+      "source": "issue: Expected behavior ('a generated resolver in app')"
+    },
+    {
+      "id": "REQ-2283-3",
+      "kind": "functional",
+      "text": "Diagnostic code in TypeCollector does not index DeclaringSyntaxReferences of a symbol that may come from metadata.",
+      "source": "issue: Additional context (lines 735, 1009, 1101)"
+    },
+    {
+      "id": "REQ-2283-4",
+      "kind": "non-functional",
+      "text": "Regression tests reproduce the issue across a real assembly boundary (metadata reference, not source).",
+      "source": "issue: Repro steps"
+    },
+    {
+      "id": "REQ-2283-5",
+      "kind": "non-functional",
+      "text": "Diagnostics for types declared in the compiling project are unchanged.",
+      "source": "implicit: not stated in the issue, inferred as non-regression"
+    }
+  ],
+  "units": {
+    "README.md:Generic types from referenced assemblies": {
+      "reqs": [
+        "REQ-2283-1"
+      ],
+      "summary": "Tells users that closed generics from other assemblies work, and that problems in such a type are reported only by its defining project."
+    },
+    "MsgPack004.md:Types from referenced assemblies": {
+      "reqs": [
+        "REQ-2283-1"
+      ],
+      "summary": "States that MsgPack004 reports only on members declared in the project being compiled."
+    },
+    "TypeCollector.cs:TypeCollector": {
+      "reqs": [
+        "REQ-2283-1"
+      ],
+      "summary": "Wraps the analyzer's reporter so every TypeCollector diagnostic passes through ReportIfLocatedInCompilation.",
+      "callers_pattern": "TypeCollector collector = new\\(",
+      "covered_by": [
+        "ClosedGenericStruct_FromMetadataReference",
+        "ClosedGenericRecordStruct_FromMetadataReference",
+        "ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ]
+    },
+    "TypeCollector.cs:GetObjectInfo": {
+      "reqs": [
+        "REQ-2283-1",
+        "REQ-2283-3"
+      ],
+      "summary": "Replaces two direct DeclaringSyntaxReferences[0] reads with null-safe lookups.",
+      "covered_by": [
+        "ClosedGenericStruct_FromMetadataReference",
+        "ClosedGenericRecordStruct_FromMetadataReference",
+        "ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ]
+    },
+    "TypeCollector.cs:GetPropertyIdentifierLocation": {
+      "reqs": [
+        "REQ-2283-3"
+      ],
+      "summary": "New helper: identifier location of a property, or null when it has no PropertyDeclarationSyntax.",
+      "covered_by": []
+    },
+    "TypeCollector.cs:ReportIfLocatedInCompilation": {
+      "reqs": [
+        "REQ-2283-1"
+      ],
+      "summary": "New filter: reports a diagnostic only if its location is in a syntax tree of this compilation.",
+      "covered_by": [
+        "ClosedGenericStruct_FromMetadataReference",
+        "ClosedGenericRecordStruct_FromMetadataReference",
+        "ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ]
+    },
+    "GenericsFormatterTests.cs:file header": {
+      "reqs": [
+        "REQ-2283-4"
+      ],
+      "summary": "Adds the usings the new tests need."
+    },
+    "GenericsFormatterTests.cs:ClosedGenericStruct_FromMetadataReference": {
+      "reqs": [
+        "REQ-2283-1",
+        "REQ-2283-2",
+        "REQ-2283-4"
+      ],
+      "summary": "Generic struct from a metadata reference used as a member: no diagnostics, resolver generated."
+    },
+    "GenericsFormatterTests.cs:ClosedGenericRecordStruct_FromMetadataReference": {
+      "reqs": [
+        "REQ-2283-1",
+        "REQ-2283-2",
+        "REQ-2283-4"
+      ],
+      "summary": "The issue's repro (record struct Item<T>, Cmd) across a metadata reference."
+    },
+    "GenericsFormatterTests.cs:ClosedGenericStruct_FromMetadataReference_UnkeyedMember": {
+      "reqs": [
+        "REQ-2283-1",
+        "REQ-2283-4"
+      ],
+      "summary": "A referenced generic struct with a public unkeyed member: expects no crash and no diagnostic in the consumer."
+    },
+    "GenericsFormatterTests.cs:RunWithMetadataReferenceAsync": {
+      "reqs": [
+        "REQ-2283-2",
+        "REQ-2283-4"
+      ],
+      "summary": "Runs analyzers and generator against a metadata reference, then asserts the resolver was generated."
+    },
+    "GenericsFormatterTests.cs:CompileToMetadataReferenceAsync": {
+      "reqs": [
+        "REQ-2283-4"
+      ],
+      "summary": "Compiles the defining source to an assembly image and references it as metadata."
+    },
+    "GenericsFormatterTests.cs:CreateCompilation": {
+      "reqs": [
+        "REQ-2283-4"
+      ],
+      "summary": "Builds a C# compilation at a given language version."
+    }
+  },
+  "checks": [
+    {
+      "id": "C1",
+      "claim": "No live code in TypeCollector.cs indexes DeclaringSyntaxReferences[0] any more (commented-out code excluded).",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "^(?!\\s*//).*DeclaringSyntaxReferences\\[0\\]",
+      "expect": "absent",
+      "units": [
+        "TypeCollector.cs:GetObjectInfo"
+      ]
+    },
+    {
+      "id": "C20",
+      "claim": "The issue's third site survives only as a commented-out line.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "^\\s*//.*DeclaringSyntaxReferences\\[0\\]",
+      "expect": "==1"
+    },
+    {
+      "id": "C2",
+      "claim": "Both sites the change touches now use a null-safe lookup.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "GetPropertyIdentifierLocation\\(item\\)|MemberNeedsKey, item\\.DeclaringSyntaxReferences\\.FirstOrDefault\\(\\)",
+      "expect": "==2",
+      "units": [
+        "TypeCollector.cs:GetObjectInfo"
+      ]
+    },
+    {
+      "id": "C3",
+      "claim": "The generator calls TypeCollector with no reporter, so the new filter cannot change generated code.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/MessagePackGenerator.cs"
+      ],
+      "pattern": "TypeCollector\\.Collect\\(.*reportAnalyzerDiagnostic: null",
+      "expect": "present",
+      "units": [
+        "TypeCollector.cs:TypeCollector",
+        "TypeCollector.cs:ReportIfLocatedInCompilation"
+      ]
+    },
+    {
+      "id": "C4",
+      "claim": "The analyzer passes its real reporter, so every analyzer diagnostic from TypeCollector now goes through the filter.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/Analyzers/MsgPack00xMessagePackAnalyzer.cs"
+      ],
+      "pattern": "TypeCollector\\.Collect\\(.*context\\.ReportDiagnostic",
+      "expect": "present",
+      "units": [
+        "TypeCollector.cs:TypeCollector",
+        "TypeCollector.cs:ReportIfLocatedInCompilation"
+      ]
+    },
+    {
+      "id": "C5",
+      "claim": "Diagnostic call sites in TypeCollector that now pass through the filter (count).",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "^(?!\\s*//).*this\\.reportDiagnostic(\\?\\.Invoke)?\\(",
+      "expect": ">=1",
+      "units": [
+        "TypeCollector.cs:TypeCollector"
+      ]
+    },
+    {
+      "id": "C6",
+      "claim": "The filter keeps a diagnostic only if it has a source location inside this compilation, so a diagnostic with no location is dropped too.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "diagnostic\\.Location\\.IsInSource && this\\.compilation\\.ContainsSyntaxTree",
+      "expect": "present",
+      "units": [
+        "TypeCollector.cs:ReportIfLocatedInCompilation",
+        "README.md:Generic types from referenced assemblies",
+        "MsgPack004.md:Types from referenced assemblies"
+      ]
+    },
+    {
+      "id": "C7",
+      "claim": "The neighbouring MemberNeedsKey path handles properties declared by a record parameter (ParameterSyntax).",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "\\(syntax as ParameterSyntax\\)\\?\\.Identifier",
+      "expect": "present"
+    },
+    {
+      "id": "C8",
+      "claim": "The new helper uses FirstOrDefault like the existing location helpers, so it cannot throw on metadata symbols.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "GetPropertyIdentifierLocation\\(IPropertySymbol property\\) => \\(property\\.DeclaringSyntaxReferences\\.FirstOrDefault\\(\\)",
+      "expect": "present",
+      "units": [
+        "TypeCollector.cs:GetPropertyIdentifierLocation"
+      ]
+    },
+    {
+      "id": "C9",
+      "claim": "The new helper does not handle ParameterSyntax, so it returns null for a positional record property.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "GetPropertyIdentifierLocation\\(IPropertySymbol.*ParameterSyntax",
+      "expect": "absent"
+    },
+    {
+      "id": "C10",
+      "claim": "The record-struct test uses the issue's repro declaration verbatim.",
+      "paths": [
+        "@issue",
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "pattern": "public partial record struct Item<T>\\(\\[property: Key\\(0\\)\\] string Key\\);",
+      "expect": "present",
+      "units": [
+        "GenericsFormatterTests.cs:ClosedGenericRecordStruct_FromMetadataReference"
+      ]
+    },
+    {
+      "id": "C11",
+      "claim": "All three new tests go through the shared metadata-reference helper.",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "pattern": "await RunWithMetadataReferenceAsync\\(",
+      "expect": "==3",
+      "units": [
+        "GenericsFormatterTests.cs:ClosedGenericStruct_FromMetadataReference",
+        "GenericsFormatterTests.cs:ClosedGenericRecordStruct_FromMetadataReference",
+        "GenericsFormatterTests.cs:ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ]
+    },
+    {
+      "id": "C12",
+      "claim": "The helper asserts that the resolver was generated, not only that nothing crashed.",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "pattern": "Assert\\.Contains\\(expectedResolverHintName",
+      "expect": "present",
+      "units": [
+        "GenericsFormatterTests.cs:RunWithMetadataReferenceAsync"
+      ]
+    },
+    {
+      "id": "C13",
+      "claim": "The defining source is emitted to an image and referenced as metadata, the boundary the bug needs.",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "pattern": "MetadataReference\\.CreateFromImage",
+      "expect": "present",
+      "units": [
+        "GenericsFormatterTests.cs:CompileToMetadataReferenceAsync"
+      ]
+    },
+    {
+      "id": "C14",
+      "claim": "Compilations honour the requested language version (record structs need C# 10+).",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "pattern": "WithLanguageVersion\\(languageVersion\\)",
+      "expect": "present",
+      "units": [
+        "GenericsFormatterTests.cs:CreateCompilation"
+      ]
+    },
+    {
+      "id": "C15",
+      "claim": "The added usings are used: the tests resolve .NET 8 reference assemblies.",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "pattern": "ReferenceAssemblies\\.Net\\.Net80",
+      "expect": ">=1",
+      "units": [
+        "GenericsFormatterTests.cs:file header"
+      ]
+    },
+    {
+      "id": "C16",
+      "claim": "The new tests declare only properties, no fields.",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "range": [
+        499,
+        626
+      ],
+      "pattern": "^\\s+public [\\w<>]+ \\w+;",
+      "expect": "absent"
+    },
+    {
+      "id": "C17",
+      "claim": "The second changed site sits in the loop over fields.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "foreach \\(IFieldSymbol item in formattedType",
+      "expect": "present"
+    },
+    {
+      "id": "C18",
+      "claim": "In-source MsgPack004 analyzer tests exist that would catch a dropped in-source diagnostic, if run.",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/MsgPack00xAnalyzerTests.cs"
+      ],
+      "pattern": "\\{\\|MsgPack004:",
+      "expect": ">=1"
+    },
+    {
+      "id": "C19",
+      "claim": "The unkeyed test's referenced type has a public property with no Key attribute.",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "pattern": "public int Unkeyed \\{ get; set; \\}",
+      "expect": "present",
+      "units": [
+        "GenericsFormatterTests.cs:ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ]
+    },
+    {
+      "id": "C21",
+      "claim": "MsgPack004 is an Error, so the filter can silence errors, not just warnings.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/AnalyzerReleases.Unshipped.md"
+      ],
+      "pattern": "^MsgPack004 \\| Usage \\| Error",
+      "expect": "present"
+    },
+    {
+      "id": "C22",
+      "claim": "This repo is version 3.0-rc.1; the issue was reported on 3.1.8.",
+      "paths": [
+        "version.json",
+        "@issue"
+      ],
+      "pattern": "\"version\": \"3\\.0-rc\\.1\"|Version used: MessagePack 3\\.1\\.8",
+      "expect": "present"
+    },
+    {
+      "id": "C23",
+      "claim": "No key in the new tests is null (every Key has an integer argument or is absent).",
+      "paths": [
+        "tests/MessagePack.SourceGenerator.Tests/GenericsFormatterTests.cs"
+      ],
+      "range": [
+        499,
+        626
+      ],
+      "pattern": "Key\\((?!\\d+\\))",
+      "expect": "absent"
+    },
+    {
+      "id": "C24",
+      "claim": "Before the change, the unkeyed-member path already used a null-safe location, so it reported MsgPack004 instead of crashing.",
+      "paths": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/TypeCollector.cs"
+      ],
+      "pattern": "MemberNeedsKey, identifier\\?\\.GetLocation\\(\\)",
+      "expect": "present"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "unit": "TypeCollector.cs:GetObjectInfo",
+      "severity": "info",
+      "title": "No unsafe index remains",
+      "text": "Both sites the change touches are now null-safe and no live DeclaringSyntaxReferences[0] is left in TypeCollector.cs. The issue's third site (its line 735) exists here only as a commented-out line.",
+      "checks": [
+        "C1",
+        "C2",
+        "C20"
+      ],
+      "model_confidence": "high"
+    },
+    {
+      "id": "F2",
+      "unit": "TypeCollector.cs:TypeCollector",
+      "severity": "medium",
+      "title": "The fix is global, not local",
+      "text": "A one-line change in the constructor sends every analyzer diagnostic of TypeCollector (27 call sites) through a new filter. The filter drops any diagnostic without a location in this compilation, including ones created with a null location for types that are in source. MsgPack004 is an Error, so the filter can silence errors. The generator is unaffected.",
+      "checks": [
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C21"
+      ],
+      "model_confidence": "high"
+    },
+    {
+      "id": "F3",
+      "unit": "TypeCollector.cs:GetPropertyIdentifierLocation",
+      "severity": "medium",
+      "title": "Positional record properties lose their diagnostic",
+      "text": "The new helper returns null for a property declared by a record parameter, unlike the MemberNeedsKey path nearby. With F2, a BothStringAndIntKeyAreNull diagnostic on such a property in source is now dropped silently. Before the change the hard cast threw instead. The consequence is model reasoning; no test exercises it.",
+      "checks": [
+        "C7",
+        "C9",
+        "C6"
+      ],
+      "model_confidence": "medium"
+    },
+    {
+      "id": "F4",
+      "unit": "TypeCollector.cs:GetObjectInfo",
+      "severity": "low",
+      "title": "Which site crashed is not established",
+      "text": "The line-985 site sits inside reportDiagnostic?.Invoke(...), whose argument is not evaluated when the reporter is null, so it could only crash the analyzer. The line-1077 site builds its diagnostic unconditionally and could crash both. The issue's author did not narrow it down and the tests have not run, so the root cause is inferred, not shown.",
+      "checks": [
+        "C3"
+      ],
+      "model_confidence": "high"
+    },
+    {
+      "id": "F5",
+      "unit": "TypeCollector.cs:GetObjectInfo",
+      "severity": "medium",
+      "title": "The new tests do not reach either changed site",
+      "text": "The line-1077 change is in the loop over fields, but the new tests declare only properties. No new test has a null key, which line 985 needs. So neither changed crash site runs in the tests. This repo is 3.0-rc.1 and the issue was reported on 3.1.8, so it is not shown that the tests fail without the fix.",
+      "checks": [
+        "C16",
+        "C17",
+        "C23",
+        "C22"
+      ],
+      "model_confidence": "high"
+    },
+    {
+      "id": "F6",
+      "unit": "GenericsFormatterTests.cs:ClosedGenericRecordStruct_FromMetadataReference",
+      "severity": "info",
+      "title": "Tests reproduce the issue faithfully",
+      "text": "The record-struct test is the issue's repro verbatim, compiled across a real metadata boundary, and the helper asserts that the resolver is generated (REQ-2283-2), not only that nothing crashed.",
+      "checks": [
+        "C10",
+        "C12",
+        "C13"
+      ],
+      "model_confidence": "high"
+    },
+    {
+      "id": "F7",
+      "unit": "GenericsFormatterTests.cs:file header",
+      "severity": "low",
+      "title": "Test runtime differs from the report",
+      "text": "Tests resolve .NET 8 reference assemblies; the issue was reported on SDK 10.0.204. Unlikely to matter for a Roslyn symbol bug, but the environment is not the reporter's.",
+      "checks": [
+        "C15"
+      ],
+      "model_confidence": "medium"
+    },
+    {
+      "id": "F8",
+      "unit": "TypeCollector.cs:TypeCollector",
+      "severity": "low",
+      "title": "Analyzer release notes not updated",
+      "text": "Analyzer behaviour changed (F2), but AnalyzerReleases.Shipped.md and Unshipped.md are not part of the diff, and no existing analyzer test was updated.",
+      "checks": [],
+      "model_confidence": "high"
+    }
+  ],
+  "proposed_tests": [
+    {
+      "id": "P0",
+      "for": "F5",
+      "text": "Run the three new tests on the base commit: they must fail there and pass here (red/green). Without this the tests do not prove the fix."
+    },
+    {
+      "id": "P1",
+      "for": "F5",
+      "text": "Referenced generic struct with an unkeyed public field (not a property): exercises the line-1077 change."
+    },
+    {
+      "id": "P2",
+      "for": "F3",
+      "text": "In-source positional record whose property key resolves to null: decide whether the diagnostic must still appear, then assert it."
+    },
+    {
+      "id": "P3",
+      "for": "F2",
+      "text": "Run the existing analyzer suite (MsgPack00xAnalyzerTests and siblings): any in-source diagnostic the filter now drops fails an existing expectation."
+    }
+  ],
+  "refusals": [
+    {
+      "id": "R1",
+      "category": "diagnostic-policy",
+      "units": [
+        "TypeCollector.cs:TypeCollector",
+        "TypeCollector.cs:ReportIfLocatedInCompilation"
+      ],
+      "question": "Should TypeCollector drop every diagnostic located outside this compilation, or only those about symbols that come from metadata?",
+      "why": "It looks like a one-line plumbing change, but it changes what users are warned about across every analyzer rule, errors included, not only the crash path in the issue. The unkeyed-member test passes because of this filter, not because of the crash fix: before the change that path already reported MsgPack004 instead of crashing. Whether a lost error is acceptable is a decision about the analyzer's contract, and the existing analyzer suite that would show the cost has not been run.",
+      "agent_choice": "Drop all of them.",
+      "options": [
+        "Accept as written",
+        "Narrow the filter to symbols with no syntax and keep diagnostics without a location",
+        "Reject the fix"
+      ],
+      "evidence": [
+        "F2",
+        "F3",
+        "C4",
+        "C5",
+        "C6",
+        "C21",
+        "C24",
+        "C18"
+      ]
+    },
+    {
+      "id": "R2",
+      "category": "public-contract",
+      "units": [
+        "README.md:Generic types from referenced assemblies",
+        "MsgPack004.md:Types from referenced assemblies",
+        "GenericsFormatterTests.cs:ClosedGenericStruct_FromMetadataReference_UnkeyedMember"
+      ],
+      "question": "Do we promise users that problems in a referenced type are reported only by the project that defines it?",
+      "why": "The issue asks for no crash and a generated resolver. It says nothing about where diagnostics for referenced types belong. The agent wrote a behaviour guarantee into the README and the MsgPack004 docs and locked it in a test. The promise holds only if the defining project runs the analyzer. If it is a third-party package, nobody in the consuming project is told. Publishing a guarantee is the maintainers' call.",
+      "agent_choice": "Document and test the silence as intended behaviour.",
+      "options": [
+        "Accept the documented contract",
+        "Keep the fix, drop the docs promise and the unkeyed test",
+        "Report such problems on the consuming member instead"
+      ],
+      "evidence": [
+        "C6",
+        "C19",
+        "C24",
+        "F2"
+      ]
+    }
+  ]
+}

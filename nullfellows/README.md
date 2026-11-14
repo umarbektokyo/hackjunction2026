@@ -1,0 +1,6 @@
+[bssrsrsr][wrrrrrrr][bssrsssr][wrrsssrs][wsssssrs][wsrrssrs]
+[bsssrrrs][wssssssr][wsrsrsss][wsrrrrrr][bsssrsss][bssssrsr]
+[bsrssssr][brrrrrrs][brrssrrs][wsrssrss][wrrrrrrr][wrssssss]
+[brrrrrrr][bsrrsrrr][wrrrssrs][brssssss][bssrsrsr][wrsssrss]
+[wssrrrrr][wrrrsrsr][wrrrrrrr][brrrrrrs][wsssssrs][bsrrsssr]
+[wrrsrrrr][bssrsrss][wrsrssrr][brrrssss][bssrrrss][wsssrrrr]
