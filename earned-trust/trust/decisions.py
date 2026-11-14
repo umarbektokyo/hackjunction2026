@@ -30,7 +30,9 @@ def record(issue, dossier_id, item, decision, by, evidence, note=""):
 
 
 def latest(records):
-    return {r["item"]: r for r in records}
+    """The standing decision per item. A later 'reopen' withdraws it; both stay in the file."""
+    last = {r["item"]: r for r in records}
+    return {k: r for k, r in last.items() if r["decision"] != "reopen"}
 
 
 def merge_blockers(d, records):

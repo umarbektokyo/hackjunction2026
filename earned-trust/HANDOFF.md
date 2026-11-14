@@ -70,6 +70,25 @@ in the editor's top bar ellipsize from the left. `DEMO.md` "Tests" section updat
   established", "The new tests do not reach either…") are contradicted by the test run now. Ask
   Umarbek / the user before rewriting them; the real fix is task 2 below.
 
+## Done on 14 Nov, evening (user: "make it usable, by humans")
+
+The user found the flow unusable: choosing a decision gave no feedback, the other buttons stayed,
+and the diff was a folded, wrapped blob. `web/index.html` was rewritten around usability heuristics:
+- **Decision card**: options are radio-style cards; a click shows a busy state, then the card turns
+  to *Decided* (chosen option filled, name, time), a toast confirms with **Undo**, the list dot
+  becomes a tick, the progress line in the header counts decisions, and **Next open decision →**
+  leads on. **Change decision** reopens it (`decision: "reopen"`, accepted by `serve.py`;
+  `decisions.latest` treats a reopened item as undecided; the log stays append-only).
+- **Legend** always visible above the merge box; dots also explain themselves on hover.
+- **Merge box** lists its blockers as links to the unit that blocks it.
+- **Editor**: whole function, never folded; old and new line numbers; C# syntax colouring;
+  indentation drawn as 2-column tabs; long lines wrap with a hanging indent under their own line;
+  intraline change highlight; "N changes ↑ ↓" in the top bar (keys n / p) jumps between changes.
+  Markdown sections wrap as prose. Rejected on the way: no-wrap with horizontal scroll (the changed
+  part sat off screen, and scrolling sideways lost the reader's place).
+- Tested by driving headless Chromium over CDP (click option → decided → Undo → reopened; change
+  navigation; docs unit): no console errors. The script is not in the repo; any CDP driver works.
+
 ## Next tasks (judging is 15 Nov)
 
 1. **Ask the user to look at the page at full size** and react; do not add elements unasked.

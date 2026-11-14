@@ -46,11 +46,12 @@ prove or refused to decide."
 
 ## 2:40 Decide (40 s) [Practicality]
 
-- Back on **TypeCollector()**: click **Narrow the filter…**. "Recorded with her name, the time,
-  the evidence and the hash of this exact dossier."
-- **Generic types from referenced assemblies** (docs): click **Keep the fix, drop the docs promise…**.
-- Bottom left: "Merge belongs to Sara and still waits for a test run. The tool will not let her
-  approve on missing evidence. In a real flow CI fills that in."
+- Back on **TypeCollector()**: pick **Narrow the filter…**. "The card turns to *Decided*, with her
+  name and the time; a toast confirms it and offers Undo; the dot in the list becomes a tick and the
+  progress line reads 1 of 2." Click **Next open decision →**.
+- **Generic types from referenced assemblies** (docs): pick **Keep the fix, drop the docs promise…**.
+- Bottom left: "Merge belongs to Sara. It lists what still blocks it, and each line is a link:
+  GetPropertyIdentifierLocation is not proven by a test. In a real flow CI fills that in."
 
 ## 3:20 Measure and close (30 s) [Measurement]
 

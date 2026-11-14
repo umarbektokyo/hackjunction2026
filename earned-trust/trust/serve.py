@@ -27,7 +27,7 @@ def decide(issue, item, decision):
     refusal = next((r for r in d["refusals"] if r["id"] == item), None)
     finding = next((f for f in d["findings"] if f["id"] == item), None)
     approver = d["owners"]["approver"]
-    if refusal and decision in refusal["options"]:
+    if refusal and (decision in refusal["options"] or decision == "reopen"):
         by, evidence = refusal["owner"], refusal["evidence"]
     elif finding and decision in ("real", "not real"):
         by, evidence = approver, finding["checks"]
