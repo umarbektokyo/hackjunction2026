@@ -1,0 +1,23 @@
+# Merged by Harbor on top of its own base compose file. `main` is Harbor's
+# reserved agent service (built from ./Dockerfile); `mcp-server` is the game.
+services:
+  main:
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+
+  mcp-server:
+    build:
+      context: ./mcp-server
+    environment:
+      SURVIVOR_SEED: "103"
+      SURVIVOR_RESULT: /results/game.json
+      PORT: "8000"
+    # No volumes and no published ports: the result file lives only in this
+    # container's own filesystem and is read out by Harbor after `main` stops.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 2).close()"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 2s

@@ -1,0 +1,19 @@
+[project]
+name = "survivor-ai"
+version = "0.1.0"
+description = "Social-strategy RL environment: one evaluated agent vs seven deterministic NPCs"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.7", "mcp>=1.9", "uvicorn>=0.30"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["survivor"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

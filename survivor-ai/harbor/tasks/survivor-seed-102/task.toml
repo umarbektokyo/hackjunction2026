@@ -1,0 +1,51 @@
+schema_version = "1.4"
+
+# The game result exists only inside the mcp-server sidecar. After the agent
+# phase Harbor stops `main`, runs the collect hook in the sidecar and copies
+# this file out; the separate verifier container receives it at the same path.
+[[artifacts]]
+source = "/snapshot/game.json"
+service = "mcp-server"
+
+[task]
+name = "survivor-ai/survivor-seed-102"
+version = "1.0.0"
+description = "Win an 8-player elimination game (alliances, vote promises, jury) against 7 deterministic NPCs through MCP tools. Seed 102."
+authors = []
+keywords = ["social-strategy", "multi-agent", "mcp", "long-horizon"]
+
+[metadata]
+seed = 102
+rules_version = "1.0"
+rules_hash = "9515f03a1d8932de"
+category = "social-strategy"
+
+[verifier]
+timeout_sec = 300.0
+environment_mode = "separate"
+
+[[verifier.collect]]
+service = "mcp-server"
+command = "mkdir -p /snapshot && cp /results/game.json /snapshot/game.json"
+timeout_sec = 30.0
+
+[agent]
+timeout_sec = 2400.0
+# TODO(egress): an allowlist here (network_mode = "allowlist") would stop an agent from
+# downloading the engine source and simulating its seed, but under Harbor 0.26's egress
+# proxy the sidecar name `mcp-server` stops resolving. Needs a fixed sidecar IP; see README.
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 900.0
+os = "linux"
+
+[[environment.mcp_servers]]
+name = "survivor"
+transport = "streamable-http"
+url = "http://mcp-server:8000/mcp"
+
+# Oracle-only switch: SURVIVOR_POLICY=stop_early harbor run -a oracle ... runs the
+# stop-early baseline instead of the scripted reference policy.
+[solution.env]
+SURVIVOR_POLICY = "${SURVIVOR_POLICY:-reference}"
