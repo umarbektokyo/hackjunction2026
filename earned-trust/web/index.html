@@ -24,10 +24,11 @@
   nav header { padding: 18px 18px 14px; } nav h1 { font: 400 15px/1.35 var(--sans); margin-top: 6px; }
   nav .list { overflow: auto; padding-bottom: 12px; }
   nav .group { padding: 14px 18px 4px; }
-  .row { display: flex; align-items: center; gap: 9px; width: 100%; padding: 5px 18px; font: 12px/1.5 var(--mono); }
+  .row { box-sizing: border-box; display: flex; align-items: center; gap: 9px; width: 100%; padding: 5px 18px; font: 12px/1.5 var(--mono); }
   .row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .row em { margin-left: auto; font-style: normal; color: var(--mute); font-size: 10px; white-space: nowrap; }
   .row:hover { background: #dfdfd9; } .row.sel { background: var(--ink); color: var(--panel); }
+  .row.dim { opacity: .32; } .row.dim:hover { opacity: .7; }
   .row.sel i.led:not(.routed) { border-color: var(--panel); } .row.sel i.cleared { background: var(--panel); }
   nav footer { padding: 12px 18px 16px; border-top: 1px solid var(--line); }
   .merge.go { display: block; text-align: center; color: var(--panel); background: var(--ink); padding: 8px; border-radius: 4px;
@@ -38,6 +39,7 @@
   .path { position: sticky; top: 0; z-index: 2; background: var(--panel); border-bottom: 1px solid var(--line);
           padding: 12px 20px; font: 12px var(--mono); display: flex; gap: 14px; align-items: baseline; }
   .path b { font-weight: 600; } .path span { color: var(--mute); }
+  .path > span:not(.tests) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; }
   .path .tests { margin-left: auto; display: flex; gap: 5px; align-items: center; white-space: nowrap; } .path .tests.hot { color: var(--hot); }
   .rule { padding: 22px 20px 6px 76px; display: flex; gap: 10px; align-items: baseline; }
   .where { display: flex; gap: 10px; align-items: baseline; padding: 10px 20px 3px 76px; font: 11px var(--mono); color: var(--mute); }
@@ -46,9 +48,11 @@
   .code div { display: grid; grid-template-columns: 56px 20px minmax(0, 1fr); padding-right: 20px; }
   .code .n { color: var(--mute); text-align: right; user-select: none; }
   .code .s { text-align: center; color: var(--mute); user-select: none; }
-  .code .t { white-space: pre-wrap; word-break: break-all; }
+  .code .t { white-space: pre-wrap; overflow-wrap: anywhere; padding-left: calc(var(--i, 0ch) + 4ch); text-indent: -4ch; }
+  .code .cm .t { color: var(--mute); }
+  .code .add .chg { background: #b9cfa8; border-radius: 2px; } .code .del .chg { background: #e9b9a6; border-radius: 2px; }
   .code .add { background: var(--add); } .code .del { background: var(--del); color: #7a5a4e; }
-  .code .hit .t { box-shadow: inset 2px 0 0 var(--hot); padding-left: 8px; margin-left: -10px; }
+  .code .hit .t { box-shadow: inset 2px 0 0 var(--hot); padding-left: calc(var(--i, 0ch) + 4ch + 8px); margin-left: -10px; }
   .code mark { background: none; color: var(--hot); font-weight: 600; }
   .quiet { padding: 4px 20px 0 76px; font: 11px var(--mono); color: var(--mute); }
   main .end { height: 80px; }
@@ -63,17 +67,13 @@
   .ask button:hover { background: var(--ink); color: var(--panel); }
   .done { font: 12px/1.5 var(--mono); margin-top: 10px; }
   .small { font-size: 12.5px; color: #4d4d47; } .small b { font-weight: 500; color: var(--ink); }
-  .bar { display: flex; gap: 3px; margin: 8px 0 6px; } .bar i { flex: 1; height: 5px; border-radius: 3px; border: 1.3px solid var(--ink); }
-  .bar i.passed { background: var(--ink); } .bar i.failed { background: var(--hot); border-color: var(--hot); }
   details { border-top: 1px solid var(--line); } details:last-of-type { border-bottom: 1px solid var(--line); }
   summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 9px; padding: 7px 0; font: 11px/1.5 var(--mono); }
   summary::-webkit-details-marker { display: none; }
   summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } summary em { margin-left: auto; font-style: normal; color: var(--mute); white-space: nowrap; }
-  details .code { font-size: 10.5px; background: var(--panel); border-radius: 6px; padding: 8px 0; margin-bottom: 10px; max-height: 320px; overflow: auto; }
-  details .code div { grid-template-columns: 34px 8px minmax(0, 1fr); padding-right: 8px; }
-  details .open { display: inline-block; font: 10px var(--mono); border-bottom: 1px solid var(--ink); margin: 0 0 10px; }
   .suggest { display: flex; gap: 9px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 12px; color: #4d4d47; }
   .suggest i { margin-top: 5px; }
+  details > .small { margin: 0 0 10px; } .ask details { margin-top: 10px; border-bottom: 0; } .ask summary { color: var(--mute); }
 </style>
 
 <nav>
@@ -98,7 +98,8 @@ const isTest = (u) => u.name in S.dossier.tests;
 
 async function load() {
   S = await (await fetch("/api/state")).json();
-  sel ??= units().find((u) => u.status === "routed" && u.tier === "shipped").id;
+  const linked = decodeURIComponent(location.hash.slice(1));      // #<unit id> opens that unit
+  sel ??= units().some((u) => u.id === linked) ? linked : units().find((u) => u.status === "routed" && u.tier === "shipped").id;
   render();
 }
 async function decide(item, decision) {
@@ -121,13 +122,32 @@ document.addEventListener("keydown", (e) => {                   // up / down wal
 
 function render() { renderList(); renderEditor(); renderReview(); }
 
+// The test units that belong to a code unit: its tests and the helpers they call, transitively.
+function testsOf(u) {
+  const seen = new Set(), todo = u.covered_by.map((n) => units().find((x) => x.name === n && x.tier === "test")).filter(Boolean);
+  for (const t of todo) {
+    if (seen.has(t.id)) continue;
+    seen.add(t.id);
+    for (const c of t.calls) { const h = unitOf(c.file, c.member); if (h?.tier === "test") todo.push(h); }
+  }
+  return seen;
+}
+// Which test rows stay lit for the selection; null means no dimming (docs).
+function related(u) {
+  if (u.tier === "doc") return null;
+  if (u.tier === "shipped") return testsOf(u);
+  const owners = units().filter((x) => x.tier === "shipped" && testsOf(x).has(u.id));
+  return new Set([u.id, ...owners.flatMap((x) => [...testsOf(x)])]);
+}
+
 function renderList() {
   const D = S.dossier;
   $("#issue").textContent = `#${D.case.issue} · agent change`;
   $("#title").textContent = D.case.title;
+  const lit = related(units().find((u) => u.id === sel)), dim = new Set(lit ? units().filter((u) => !lit.has(u.id)).map((u) => u.id) : []);
   $("#list").innerHTML = [["shipped", "code"], ["test", "tests"], ["doc", "docs"]].map(([tier, name]) =>
     `<div class="group label">${name}</div>` + units().filter((u) => u.tier === tier).map((u) =>
-      `<button class="row ${u.id === sel ? "sel" : ""}" data-go="${esc(u.id)}" title="${esc(u.file)}">
+      `<button class="row ${u.id === sel ? "sel" : ""} ${tier === "test" && dim.has(u.id) ? "dim" : ""}" data-go="${esc(u.id)}" title="${esc(u.file)}">
          <i class="led ${u.status}"></i><span>${esc(title(u))}</span><em>+${u.added}${u.removed ? " −" + u.removed : ""}</em></button>`).join("")).join("");
   const open = D.refusals.filter((r) => !S.decisions[r.id]).length, held = D.summary.held, ap = D.owners.approver;
   const wait = [open && `${open} decision${open > 1 ? "s" : ""}`, held && "a test run"].filter(Boolean).join(" and ");
@@ -136,10 +156,32 @@ function renderList() {
     : `<button class="merge go" data-item="MERGE" data-decision="approved">merge · ${esc(ap.name)}</button>`;
 }
 
-function line(no, sign, text, cls = "", name = "") {
-  let t = esc(text) || " ";
-  if (name) t = t.replace(new RegExp(`\\b${name}\\b(?=\\s*[(<])|\\bnew(?=\\()`, "g"), "<mark>$&</mark>");
-  return `<div class="${cls}"><span class="n">${no}</span><span class="s">${sign}</span><span class="t">${t}</span></div>`;
+// One code line. Indentation becomes a hanging indent so wrapped lines stay aligned; `chg` is the
+// [start, end) span of the line that differs from its removed/added partner.
+function line(no, sign, text, cls = "", name = "", chg = null) {
+  const raw = text.replace(/\t/g, "    "), ind = raw.search(/\S|$/), body = raw.slice(ind);
+  let t;
+  if (chg && chg[1] > chg[0]) {
+    const [a, b] = chg.map((i) => Math.max(0, i - ind));
+    t = esc(body.slice(0, a)) + `<span class="chg">${esc(body.slice(a, b))}</span>` + esc(body.slice(b));
+  } else {
+    t = esc(body) || " ";
+    if (name) t = t.replace(new RegExp(`\\b${name}\\b(?=\\s*[(<])|\\bnew(?=\\()`, "g"), "<mark>$&</mark>");
+  }
+  if (/^(\/\/|\/\*|\*)/.test(body)) cls += " cm";
+  return `<div class="${cls}"><span class="n">${no}</span><span class="s">${sign}</span><span class="t" style="--i:${ind}ch">${t}</span></div>`;
+}
+// The part of a removed/added pair that differs: common prefix and suffix cut, snapped to whole words.
+function changed(a, b) {
+  a = a.replace(/\t/g, "    "); b = b.replace(/\t/g, "    ");
+  let p = 0, s = 0;
+  while (p < a.length && p < b.length && a[p] === b[p]) p++;
+  while (p > 0 && /\w/.test(a[p - 1])) p--;
+  while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
+  while (s > 0 && /\w/.test(a[a.length - s])) s--;
+  const ca = [p, a.length - s], cb = [p, b.length - s];
+  // Lines that share almost nothing read better without highlights.
+  return p + s < 6 ? [null, null] : [ca, cb];
 }
 const dedent = (rows) => { const d = Math.min(...rows.filter((r) => r.text.trim()).map((r) => r.text.search(/\S/))); return (t) => t.slice(d); };
 const jump = (file, name, text) => { const u = unitOf(file, name); return u ? `<button data-go="${esc(u.id)}">${esc(text)}</button>` : `<b>${esc(text)}</b>`; };
@@ -163,10 +205,16 @@ function renderEditor() {
     if (!u.callers.length) html += `<div class="quiet">${isTest(u) ? "run by the test runner" : u.name === "file header" ? "—" : "no caller found in this repo"}</div>`;
   }
 
-  const cut = dedent(u.lines);
+  const cut = dedent(u.lines), chg = [];
+  for (let i = 0; i < u.lines.length;) {                         // pair each run of removed lines with the added run after it
+    let d = i; while (d < u.lines.length && u.lines[d].kind === "-") d++;
+    let a = d; while (a < u.lines.length && u.lines[a].kind === "+") a++;
+    for (let k = 0; k < Math.min(d - i, a - d); k++) [chg[i + k], chg[d + k]] = changed(cut(u.lines[i + k].text), cut(u.lines[d + k].text));
+    i = a > i ? a : i + 1;
+  }
   html += `<div class="rule label">change</div><div class="code">${u.lines.map((l, i) => {
     const no = l.new ?? l.old, prev = i && (u.lines[i - 1].new ?? u.lines[i - 1].old);
-    return (i && no - prev > 1 ? line("⋯", "", "") : "") + line(no, l.kind.trim(), cut(l.text), { "+": "add", "-": "del", " ": "" }[l.kind]);
+    return (i && no - prev > 1 ? line("⋯", "", "") : "") + line(no, l.kind.trim(), cut(l.text), { "+": "add", "-": "del", " ": "" }[l.kind], "", chg[i]);
   }).join("")}</div>`;
 
   if (code) {
@@ -178,13 +226,6 @@ function renderEditor() {
   $("#editor").innerHTML = html + `<div class="end"></div>`;
 }
 
-function testRow(name) {
-  const t = units().find((x) => x.name === name), st = S.dossier.tests[name].status, cut = dedent(t.lines);
-  return `<details><summary><i class="led ${st.replace(" ", "")}"></i><span>${esc(name)}</span><em>${esc(st)}</em></summary>
-    <div class="code">${t.lines.map((l) => line(l.new, "", cut(l.text))).join("")}</div>
-    <button class="open" data-go="${esc(t.id)}">open this test</button></details>`;
-}
-
 function renderReview() {
   const D = S.dossier, u = units().find((x) => x.id === sel), r = refusal(u);
   const says = { cleared: "checked · safe to skip", held: "waiting for a test run", routed: `needs a decision · ${r?.owner.name}` }[u.status];
@@ -193,29 +234,22 @@ function renderReview() {
   if (r) {
     const rec = S.decisions[r.id];
     html += `<section class="ask"><div class="label hot">the AI will not decide this<br>${esc(r.owner.name)} · ${esc(r.owner.role)}</div>
-      <q>${esc(r.question)}</q><p class="small">${esc(r.why)}</p>
+      <q>${esc(r.question)}</q>
       ${rec ? `<div class="done">✓ ${esc(rec.decision)}<br><span style="color:var(--mute)">${esc(rec.by.name)} · ${rec.at.slice(11, 16)}</span></div>` : ""}
-      ${r.options.filter((o) => o !== rec?.decision).map((o) => `<button data-item="${r.id}" data-decision="${esc(o)}">${esc(o)}</button>`).join("")}</section>`;
+      ${r.options.filter((o) => o !== rec?.decision).map((o) => `<button data-item="${r.id}" data-decision="${esc(o)}">${esc(o)}</button>`).join("")}
+      <details><summary>why the AI refuses</summary><p class="small">${esc(r.why)}</p></details></section>`;
   }
 
+  // Tests live in the left bar and the editor's top bar; here only what the AI noticed, titles first.
   const notes = D.findings.filter((f) => f.unit === u.id);
-  if (u.tier === "shipped") {
-    const st = u.covered_by.map((n) => D.tests[n].status), ran = st.filter((s) => s === "passed" || s === "failed").length;
-    const wanted = D.proposed_tests.filter((p) => notes.some((f) => f.id === p.for));
-    html += `<section><div class="label">tests for this function · ${ran} of ${st.length} run</div>
-      <div class="bar">${st.map((s) => `<i class="${s}"></i>`).join("")}</div>
-      ${u.covered_by.map(testRow).join("") || `<p class="small hot">No test reaches this function.</p>`}
-      ${wanted.map((p) => `<div class="suggest"><i class="led suggested"></i><span>${esc(p.text)}</span></div>`).join("")}</section>`;
-  } else if (isTest(u)) {
-    const st = D.tests[u.name].status, targets = units().filter((x) => (x.covered_by || []).includes(u.name));
-    html += `<section><div class="label">this test · ${esc(st)}</div><div class="bar"><i class="${st}"></i></div>
-      <p class="small">${esc(D.tests[u.name].why)}</p></section>
-      <section><div class="label">exercises</div>${targets.map((x) =>
-        `<button class="row" style="padding:5px 0" data-go="${esc(x.id)}"><i class="led ${x.status}"></i><span>${esc(title(x))}</span></button>`).join("")}</section>`;
-  }
-  if (notes.length) html += `<section><div class="label">the AI noticed</div>${notes.map((f) =>
-    `<p class="small"><b>${esc(f.title)}.</b> ${esc(f.text)}</p>`).join("")}</section>`;
+  if (notes.length) html += `<section><div class="label">the AI noticed</div>${notes.map((f) => {
+    const wanted = D.proposed_tests.filter((p) => p.for === f.id);
+    return `<details><summary><span>${esc(f.title)}</span>${wanted.length ? `<em>${wanted.length} test${wanted.length > 1 ? "s" : ""} to add</em>` : ""}</summary>
+      <p class="small">${esc(f.text)}</p>
+      ${wanted.map((p) => `<div class="suggest"><i class="led suggested"></i><span>${esc(p.text)}</span></div>`).join("")}</details>`;
+  }).join("")}</section>`;
 
+  if (isTest(u)) html += `<section><div class="label">this test · ${esc(D.tests[u.name].status)}</div><p class="small">${esc(D.tests[u.name].why)}</p></section>`;
   $("#review").innerHTML = html;
 }
 load();

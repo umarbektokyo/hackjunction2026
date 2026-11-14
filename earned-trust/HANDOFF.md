@@ -29,34 +29,60 @@ Rule of thumb: if an element does not help answer "what changed here, what does 
 tested, who decides", it does not go on screen. Put it in `CONCEPT.md` instead. When unsure about a
 UX direction, ask the user for a reference product before building; that is what finally worked.
 
-## Next tasks, in the user's priority order
+## Done on 14 Nov afternoon (the three UI tasks from the morning hand-over)
 
-All three are in `web/index.html` (one file, plain HTML/CSS/JS, no build step).
+All in `web/index.html`, checked by headless Chromium screenshots at 1600×1000 (not yet by the
+user at full size; they saw the earlier version and said "yes, it is closer").
 
-1. **Right pane is still too cluttered.** Suggested cut: keep the status label, the one-line
-   summary and the question box with its buttons. Fold "why the AI refuses" behind a `<details>`.
-   Show "the AI noticed" as titles only, each expandable, with the suggested tests (dashed rows
-   today) inside the related note. Remove the test list from the right pane once task 3 is done:
-   the left bar and the editor's top bar then carry the tests.
-2. **Diff should have proper formatting, not big blobs of text.** Long C# lines currently wrap with
-   `word-break: break-all` and lose their indentation. Suggested: keep indentation with a hanging
-   indent (leading spaces → `padding-left: Nch`, negative `text-indent`), wrap with
-   `overflow-wrap: anywhere`, mute comment lines, and add **intraline highlighting**: for a
-   removed/added pair, find the common prefix and suffix and emphasise only the part that changed
-   (see unit `TypeCollector.cs:GetObjectInfo`, lines 985 and 1077, for the worst case). The same
-   `line()` helper renders mentions, calls and test source, so fix it once.
-3. **Left bar: dim unrelated tests.** When a code function is selected, grey out every row under
-   TESTS except the tests for that function (`unit.covered_by` holds their names; include the
-   helpers those tests call, via `unit.calls`). When a test is selected, the picture stays the
-   same: tests that belong to the same code as the selected test stay normal, the others are grey.
-   A function with no tests (`GetPropertyIdentifierLocation`) greys all of them. Docs: no dimming.
+1. **Right pane cut down.** Status label, one-line summary, the question box with its buttons.
+   "Why the AI refuses" is a `<details>` inside the box. "The AI noticed" is titles only; each
+   expands to its text and the suggested tests for that note (`proposed_tests[].for === finding.id`).
+   The test list and the "exercises" list are gone from the right pane; a test unit shows one line
+   (status + why not run).
+2. **Diff formatting.** `line()` turns leading whitespace into a hanging indent (CSS var `--i`,
+   wrapped lines indent 4ch more), wraps with `overflow-wrap: anywhere`, mutes comment lines, and
+   takes an optional `[start, end)` range for **intraline highlighting**. `changed(a, b)` cuts the
+   common prefix and suffix of a removed/added pair, snapped to whole words; `renderEditor` pairs
+   each run of `-` lines with the `+` run after it.
+3. **Left bar dimming.** `testsOf(unit)` = `covered_by` tests plus the test-tier helpers they call,
+   transitively. `related(selection)`: code unit → `testsOf`; test or helper → union of `testsOf`
+   for every code unit that owns it; docs → no dimming. Unrelated test rows get `.dim`.
 
-After those: check the page at real size in a browser and ask the user to look; the previous model
-only saw it scaled down in a small preview pane.
+Also: `#<unit id>` in the URL opens that unit (handy for demo and screenshots, e.g.
+`http://localhost:8283/#TypeCollector.cs:GetObjectInfo`); `.row` had `box-sizing` reset by
+`button { all: unset }`, which caused a horizontal scrollbar in the list (fixed); long file paths
+in the editor's top bar ellipsize from the left. `DEMO.md` "Tests" section updated.
+
+## Next tasks (judging is 15 Nov)
+
+1. **Ask the user to look at the page at full size** and react; do not add elements unasked.
+2. **Feed real evidence into this UI.** `main` has a second half of this entry (see below): real
+   Claude reviews of all four Tieto branches in `earned-trust/reports/REQ-*/report.json` (claims,
+   verdicts, evidence pointers file:line, routed questions). Replace `input/2283/review.handwritten.json`
+   with an adapter from `REQ-2283/report.json`, then add the other three branches. Biggest gain left.
+3. **Merge the two halves.** Both live in `earned-trust/` and both have README, CONCEPT, LESSONS:
+   a plain `git merge` will conflict. Agree a layout with the user and Umarbek first (suggestion:
+   CLI + reports at `earned-trust/`, this reviewer at `earned-trust/reviewer/`).
+4. Slides (5), a 3-minute demo, a backup video.
 
 Not built, raised by the user: a **visual before/after gallery for UI components**. The Tieto
-sample is a C# library with no UI, so there is nothing to render. It would need a separate sample
-project; ask before starting.
+sample is a C# library with no UI, so there is nothing to render. Ask before starting.
+
+## The other half, on `main`: `cev` (claims → evidence → verdict)
+
+`earned-trust/` on `main` (TypeScript, Node 22 via `nix develop`; plain shell has no node/pnpm):
+
+- `node dist/cli.js review ...` asks the logged-in `claude` CLI for claims, verifies each with
+  read-only tools on HEAD and BASE, writes `reports/REQ-*/report.{md,json}`. Done for all four
+  branches ($6.49). Base is `origin/HEAD`, not `origin/master`.
+- `node dist/cli.js metrics` → `reports/METRICS.md`: per change and across changes (share routed,
+  review load in lines/places, findings, findings accepted, agreement, time to decision, cost;
+  reverts stated as not measurable yet). Everything computed from reports + `decisions/log.jsonl`.
+- `decisions/sign.sh "Name"` records three proposed rejects (2234, 2297, 2283), with 2297 C11
+  answered from git. **Not run: the user must sign as the accountable human.** Do not sign for them.
+- `nix develop` now also has the .NET 8 SDK downloaded: `review ... --exec` can run the tests
+  (slow first build). 2129 is waiting for that before a decision.
+- Sample repo for both halves: `sample-repo/` here (gitignored, all branches fetched).
 
 ## How it works
 

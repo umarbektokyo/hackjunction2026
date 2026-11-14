@@ -1,7 +1,7 @@
 # Demo script (3 to 4 minutes)
 
 Before: `rm -rf decisions && ./run.sh`. One page, three panes: changed functions on the left, the
-editor in the middle, review and tests on the right. Criteria in brackets.
+editor in the middle, the AI's review on the right. Criteria in brackets.
 
 ## 0:00 The question (20 s)
 
@@ -33,10 +33,14 @@ prove or refused to decide."
 
 - Top bar of the editor: "Three rings: 3 tests cover this function, none has run. We never show
   a test as passing unless it ran."
-- Right pane: open a test row to read its source. "And two dashed rows: tests the AI suggests,
-  because the existing ones do not prove the fix."
-- Click **GetPropertyIdentifierLocation**: "No test reaches this function. It says so in orange."
-- Click a test in the list: "A test shows what it exercises."
+- Left pane: "The tests that belong to this function stay dark, with the helpers they call; the
+  rest go grey." Click a test: the tests of the same code stay lit.
+- Click **GetPropertyIdentifierLocation**: "No test reaches this function. It says so in orange,
+  and every test greys out."
+- Right pane, **the AI noticed**: open "The new tests do not reach either…" on **GetObjectInfo**.
+  "Two tests the AI suggests, inside the note that explains why."
+- Middle pane on **GetObjectInfo**, line 1077: "Only the part that changed is highlighted:
+  `[0]` became `FirstOrDefault()?`."
 
 ## 2:40 Decide (40 s) [Practicality]
 
