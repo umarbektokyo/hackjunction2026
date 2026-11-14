@@ -89,6 +89,27 @@ and the diff was a folded, wrapped blob. `web/index.html` was rewritten around u
 - Tested by driving headless Chromium over CDP (click option → decided → Undo → reopened; change
   navigation; docs unit): no console errors. The script is not in the repo; any CDP driver works.
 
+## Done on 14 Nov, late (user: code standards, Waddenislands, "make it win")
+
+- **Second case, REQ-W3 (Java).** `Waddenislands/` (Umarbek's exam solution) is the human-written
+  base. `claude -p` (sonnet, file tools only) implemented the exam's Option 3 thread extension; its
+  diff and reply are in `input/w3/`. `samples.sh` builds `sample-wadden/` (main + agent branch).
+  The AI review is a real `claude -p` (opus) call, cached in `input/w3/review.llm.json` ($0.27):
+  6 findings, 3 refusals routed to synthetic owners (`input/w3/owners.json`).
+- **Switch cases** at the top left (`/api/cases`, `/api/state?case=`; `#<case>/<unit>` deep links).
+- **Approver actions**: Merge always visible (disabled with links to each blocker), Request changes
+  with a note, Accept without proof on held units (approver answers for it), Undo / withdraw.
+- **Refactor to the team's standard**: page split into ES modules (`web/js/`: pure `model`, `diff`,
+  `syntax`; `view-*` return HTML; `app` wires events); builder split (`testrun.py`, `style.py`).
+  No function over 30 lines. `./test.sh`: 69 Python + 47 JS unit tests, all passing.
+- **Tests with and without the change** now also for JUnit; "does not compile without it" counts
+  as proof for tests of new code. Checkstyle evidence is wired (`style.py`) but Checkstyle is not
+  installed here, so no style checks appear yet.
+- **Note for whoever runs it**: building REQ-W3 compiles and runs the agent's Java code, and the
+  first run downloads the JUnit console jar from Maven Central into `.work/`. The auto-mode safety
+  check blocked doing that by hand once; the user should decide whether builds run it
+  (`./run.sh --reuse-tests` does not).
+
 ## Next tasks (judging is 15 Nov)
 
 1. **Ask the user to look at the page at full size** and react; do not add elements unasked.

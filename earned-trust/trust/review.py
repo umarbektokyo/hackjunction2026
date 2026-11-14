@@ -1,6 +1,6 @@
 """The review layer: what the reviewer model says about the change.
 
-One Claude call per change, cached to review.llm.json so the demo never calls the API. Without a
+One Claude call per change (the logged-in `claude` CLI), cached to review.llm.json so the demo never calls it. Without a
 cached response the hand-written review.handwritten.json is used, and the dossier says so. Either way
 the model only proposes: requirements, unit mapping, findings, refusals and the checks that would
 back them. The builder executes every check, so a hallucinated claim shows up as 'does not hold'.
@@ -8,10 +8,12 @@ back them. The builder executes every check, so a hallucinated claim shows up as
 
 import json
 import os
+import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-MODEL = "claude-opus-5-5"
+MODEL = "opus"
 
 PROMPT = """You review an agent-written pull request for a human who will not read the diff.
 Return one JSON object only, no prose, with these keys:
@@ -39,33 +41,32 @@ def load(case_dir):
     for name in ("review.llm.json", "review.handwritten.json"):
         path = Path(case_dir) / name
         if path.exists():
-            return json.loads(path.read_text())
+            return normalise(json.loads(path.read_text()))
     raise FileNotFoundError(f"no review in {case_dir}")
 
 
-def generate(case_dir, issue, units, diff_text, categories):
-    """Ask Claude for the review once and cache it. Needs ANTHROPIC_API_KEY (or an `ant` profile)."""
-    import anthropic  # only needed for this step, never for the demo
-
-    listing = "\n".join(f"{u['id']} [{u['tier']}] +{u['added']} -{u['removed']}" for u in units)
-    prompt = PROMPT % (", ".join(categories), issue, listing, diff_text)
-    client = anthropic.Anthropic()
-    with client.beta.messages.stream(
-        model=MODEL, max_tokens=64000,
-        output_config={"effort": "high"},
-        betas=["server-side-fallback-2026-07-01"], fallbacks="default",
-        messages=[{"role": "user", "content": prompt}],
-    ) as stream:
-        message = stream.get_final_message()
-    if message.stop_reason != "end_turn":
-        raise RuntimeError(f"review not usable: stop_reason={message.stop_reason}")
-    text = "".join(b.text for b in message.content if b.type == "text")
-    review = json.loads(text[text.index("{"): text.rindex("}") + 1])
-    review |= {"source": "llm", "source_note": f"{message.model}, {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC, "
-               f"{message.usage.input_tokens} in / {message.usage.output_tokens} out tokens, cached"}
-    (Path(case_dir) / "review.llm.json").write_text(json.dumps(review, indent=2))
+def normalise(review):
+    """A refusal without `units` belongs to the units of the findings it cites as evidence."""
+    for r in review["refusals"]:
+        r.setdefault("units", sorted({f["unit"] for f in review["findings"] if f["id"] in r.get("evidence", [])}))
     return review
 
 
-def key_available():
-    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+def generate(case_dir, issue, units, diff_text, categories):
+    """Ask Claude for the review once, through the logged-in `claude` CLI, and cache it."""
+    listing = "\n".join(f"{u['id']} [{u['tier']}] +{u['added']} -{u['removed']}" for u in units)
+    prompt = PROMPT % (", ".join(categories), issue, listing, diff_text)
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    out = subprocess.run(["claude", "-p", "--model", MODEL, "--output-format", "json", "--allowedTools", ""],
+                         input=prompt, capture_output=True, text=True, env=env, check=True)
+    reply = json.loads(out.stdout)
+    text = reply["result"]
+    review = json.loads(text[text.index("{"): text.rindex("}") + 1])
+    review |= {"source": "llm", "source_note": f"claude CLI ({MODEL}), {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC, "
+               f"${reply.get('total_cost_usd', 0):.2f}, cached in review.llm.json"}
+    (Path(case_dir) / "review.llm.json").write_text(json.dumps(review, indent=2))
+    return normalise(review)
+
+
+def available():
+    return shutil.which("claude") is not None

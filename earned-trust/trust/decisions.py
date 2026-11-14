@@ -41,7 +41,7 @@ def merge_blockers(d, records):
     reasons = [f"{r['id']} undecided: {r['owner']['name']}" for r in d["refusals"] if r["id"] not in done]
     reasons += [f"{r['id']} rejected by {done[r['id']]['by']['name']}" for r in d["refusals"]
                 if r["id"] in done and done[r["id"]]["decision"] == r["options"][-1]]
-    held = [u["name"] for u in d["units"] if u["status"] == "held"]
+    held = [u["name"] for u in d["units"] if u["status"] == "held" and u["id"] not in done]
     if held:
         reasons.append(f"{len(held)} held unit(s) lack executed evidence: {', '.join(held)}")
     return reasons

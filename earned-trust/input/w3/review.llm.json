@@ -1,0 +1,476 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-W3-1",
+      "kind": "functional",
+      "text": "Option 3 (total value of all tickets for a route) runs in a separate thread.",
+      "source": "@issue: Extension, 'Please ensure that Option 3 is executed in a thread.'"
+    },
+    {
+      "id": "REQ-W3-2",
+      "kind": "functional",
+      "text": "Tickets stay available (other menu options can be used) while the Option 3 query runs.",
+      "source": "@issue: Extension, 'Tickets need to stay available while running the Option 3 query.'"
+    },
+    {
+      "id": "REQ-W3-3",
+      "kind": "functional",
+      "text": "Option 3 keeps its output format: 'All tickets in the database for the route <from> -> <to> combined are worth <n> euros.'",
+      "source": "@issue: Option 3 (existing behaviour)"
+    },
+    {
+      "id": "REQ-W3-4",
+      "kind": "functional",
+      "text": "A route is one-way: Vlieland -> Texel is a different route from Texel -> Vlieland.",
+      "source": "@issue: Option 3 (existing behaviour)"
+    },
+    {
+      "id": "REQ-W3-5",
+      "kind": "functional",
+      "text": "The menu loops, and option 5 stops the program.",
+      "source": "@issue: Standards"
+    },
+    {
+      "id": "REQ-W3-6",
+      "kind": "non-functional",
+      "text": "At least one unit test per non-trivial method, aiming for 75% line coverage.",
+      "source": "@issue: Standards"
+    },
+    {
+      "id": "REQ-W3-7",
+      "kind": "non-functional",
+      "text": "Code passes CheckStyle (checkstyle.xml): method length, parameter count, cyclomatic complexity, Javadoc, line length.",
+      "source": "@issue: Standards"
+    }
+  ],
+  "units": {
+    "Main.java:main": {
+      "reqs": [
+        "REQ-W3-1",
+        "REQ-W3-2",
+        "REQ-W3-5"
+      ],
+      "summary": "Option 3 now calls terminal.startTurnOver(..., System.out::println) instead of printing toStringTurnOver directly. It does not wait for the thread, so the menu comes back right away and the result is printed whenever it is ready.",
+      "covered_by": []
+    },
+    "Terminal.java:file header": {
+      "reqs": [
+        "REQ-W3-1"
+      ],
+      "summary": "Adds the java.util.function.Consumer import used by startTurnOver.",
+      "covered_by": [
+        "startTurnOverTest"
+      ]
+    },
+    "Terminal.java:startTurnOver": {
+      "reqs": [
+        "REQ-W3-1",
+        "REQ-W3-2",
+        "REQ-W3-3",
+        "REQ-W3-7"
+      ],
+      "summary": "New public method. It starts a new Thread that runs the existing toStringTurnOver, passes the message to a callback, and returns the started thread. There is no synchronization on the ticket data and no exception handling in the thread.",
+      "covered_by": [
+        "startTurnOverTest"
+      ]
+    },
+    "TerminalTest.java:file header": {
+      "reqs": [
+        "REQ-W3-6"
+      ],
+      "summary": "Adds imports for AtomicReference, assertSame and assertNotSame.",
+      "covered_by": []
+    },
+    "TerminalTest.java:startTurnOverTest": {
+      "reqs": [
+        "REQ-W3-1",
+        "REQ-W3-3",
+        "REQ-W3-6"
+      ],
+      "summary": "Starts the query for Terschelling -> Vlieland, joins the thread, and checks three things: the exact 155-euro message, that the callback ran on the returned thread, and that this thread is not the test thread.",
+      "covered_by": []
+    }
+  },
+  "checks": [
+    {
+      "id": "C1",
+      "claim": "Main calls startTurnOver for option 3 and passes System.out::println as the callback.",
+      "paths": [
+        "src/Main.java"
+      ],
+      "pattern": "terminal\\.startTurnOver\\(departureCity, arrivalCity, System\\.out::println\\)",
+      "expect": "present",
+      "units": [
+        "Main.java:main"
+      ]
+    },
+    {
+      "id": "C2",
+      "claim": "Terminal creates a new Thread.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "new Thread\\(",
+      "expect": ">=1",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C3",
+      "claim": "The thread is started inside startTurnOver.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "^\\s*thread\\.start\\(\\);",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C4",
+      "claim": "Main never joins the worker thread, so the menu does not wait for the result.",
+      "paths": [
+        "src/Main.java"
+      ],
+      "pattern": "\\.join\\(",
+      "expect": "absent",
+      "units": [
+        "Main.java:main"
+      ]
+    },
+    {
+      "id": "C5",
+      "claim": "Terminal uses no synchronization or thread-safe collection for its data.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "synchronized|Collections\\.synchronized|CopyOnWriteArrayList|ReentrantLock|ReadWriteLock",
+      "expect": "absent",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C6",
+      "claim": "The worker thread has no uncaught-exception handler.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "setUncaughtExceptionHandler",
+      "expect": "absent",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C7",
+      "claim": "The new public method signature returns a Thread.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "public Thread startTurnOver\\(String departureCity, String arrivalCity,",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C8",
+      "claim": "The existing toStringTurnOver method is kept and still public.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "public String toStringTurnOver\\(",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C9",
+      "claim": "The thread body reuses toStringTurnOver, so the output format is unchanged.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "onDone\\.accept\\(toStringTurnOver\\(departureCity, arrivalCity\\)\\)",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C10",
+      "claim": "startTurnOver has Javadoc with @param and @return tags.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "@return the already started thread",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C11",
+      "claim": "There is a test named startTurnOverTest.",
+      "paths": [
+        "tests/TerminalTest.java"
+      ],
+      "pattern": "void startTurnOverTest\\(\\)",
+      "expect": "present",
+      "units": [
+        "TerminalTest.java:startTurnOverTest"
+      ]
+    },
+    {
+      "id": "C12",
+      "claim": "The test checks that the callback did not run on the test thread.",
+      "paths": [
+        "tests/TerminalTest.java"
+      ],
+      "pattern": "assertNotSame\\(Thread\\.currentThread\\(\\), worker\\.get\\(\\)\\)",
+      "expect": "present",
+      "units": [
+        "TerminalTest.java:startTurnOverTest"
+      ]
+    },
+    {
+      "id": "C13",
+      "claim": "The test checks that the callback ran on the returned thread.",
+      "paths": [
+        "tests/TerminalTest.java"
+      ],
+      "pattern": "assertSame\\(thread, worker\\.get\\(\\)\\)",
+      "expect": "present",
+      "units": [
+        "TerminalTest.java:startTurnOverTest"
+      ]
+    },
+    {
+      "id": "C14",
+      "claim": "Only one test calls startTurnOver; no test runs it while tickets are being added.",
+      "paths": [
+        "tests/TerminalTest.java"
+      ],
+      "pattern": "startTurnOver\\(",
+      "expect": "==1",
+      "units": [
+        "TerminalTest.java:startTurnOverTest"
+      ]
+    },
+    {
+      "id": "C15",
+      "claim": "The Terminal Javadoc calls the turnover route 'omnidirectional'.",
+      "paths": [
+        "src/Terminal.java"
+      ],
+      "pattern": "omnidirectional",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C16",
+      "claim": "The issue says a route is one-way.",
+      "paths": [
+        "@issue"
+      ],
+      "pattern": "uni-directional",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver"
+      ]
+    },
+    {
+      "id": "C17",
+      "claim": "The issue requires Option 3 to run in a thread.",
+      "paths": [
+        "@issue"
+      ],
+      "pattern": "Please ensure that Option 3 is executed in a thread",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver",
+        "Main.java:main"
+      ]
+    },
+    {
+      "id": "C18",
+      "claim": "The issue requires tickets to stay available while the query runs.",
+      "paths": [
+        "@issue"
+      ],
+      "pattern": "Tickets need to stay available while running the Option 3 query",
+      "expect": "present",
+      "units": [
+        "Terminal.java:startTurnOver",
+        "Main.java:main"
+      ]
+    },
+    {
+      "id": "C19",
+      "claim": "The menu still has an option 5.",
+      "paths": [
+        "src/Main.java"
+      ],
+      "pattern": "case \"5\"",
+      "expect": "present",
+      "units": [
+        "Main.java:main"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "unit": "Terminal.java:startTurnOver",
+      "severity": "medium",
+      "title": "The worker thread reads ticket data with no synchronization",
+      "text": "The query thread goes through the ticket list while the main thread can keep changing it through the other menu options, and nothing in Terminal synchronizes access. The issue's goal is for tickets to stay available while the query runs. If a ticket is added during a long query, the result can be a ConcurrentModificationException in the worker or a total that is out of date or inconsistent. With the current small input file the race window is tiny, so it will not show up in practice yet.",
+      "checks": [
+        "C2",
+        "C5",
+        "C18"
+      ],
+      "model_confidence": "high"
+    },
+    {
+      "id": "F2",
+      "unit": "Main.java:main",
+      "severity": "low",
+      "title": "The result is printed whenever it is ready and can land in the middle of the next prompt",
+      "text": "Main does not join the thread, so the menu is printed again right away. The turnover line is printed from the worker thread whenever it finishes, which can be in the middle of the menu or another option's input prompts. This is the expected cost of keeping the terminal responsive, but the user sees the result in an unpredictable place. If option 5 is chosen while the query runs, the thread is not a daemon thread, so the result is still printed before the JVM exits.",
+      "checks": [
+        "C1",
+        "C4",
+        "C19"
+      ],
+      "model_confidence": "high"
+    },
+    {
+      "id": "F3",
+      "unit": "Terminal.java:startTurnOver",
+      "severity": "low",
+      "title": "Errors in the worker thread are not handled",
+      "text": "If the calculation or the callback throws (for example the ConcurrentModificationException from F1), the default handler prints a stack trace on stderr and the user gets no Option 3 message at all.",
+      "checks": [
+        "C6"
+      ],
+      "model_confidence": "medium"
+    },
+    {
+      "id": "F4",
+      "unit": "Terminal.java:startTurnOver",
+      "severity": "info",
+      "title": "The output format is kept by reusing toStringTurnOver",
+      "text": "The thread body calls the existing toStringTurnOver, and the new test asserts the exact 155-euro message for Terschelling -> Vlieland. That test also checks that the work ran on a different thread from the caller. The old public method is unchanged.",
+      "checks": [
+        "C8",
+        "C9",
+        "C11",
+        "C12",
+        "C13"
+      ],
+      "model_confidence": "high"
+    },
+    {
+      "id": "F5",
+      "unit": "Terminal.java:startTurnOver",
+      "severity": "info",
+      "title": "Existing Javadoc calls the route 'omnidirectional', but the issue says routes are one-way",
+      "text": "The calculateTurnOver Javadoc was already there before this change and says 'omnidirectional', which contradicts the issue. The code behaviour is still tested one-way (Terschelling -> Vlieland). The comment is misleading but was not introduced by this change.",
+      "checks": [
+        "C15",
+        "C16"
+      ],
+      "model_confidence": "medium"
+    },
+    {
+      "id": "F6",
+      "unit": "TerminalTest.java:startTurnOverTest",
+      "severity": "low",
+      "title": "Nothing tests the concurrent case or the Main wiring",
+      "text": "The only test runs the thread with nothing else happening at the same time. No test sells or adds tickets during the query, which is the scenario the requirement is about. No test drives option 3 through Main either.",
+      "checks": [
+        "C14",
+        "C1"
+      ],
+      "model_confidence": "high"
+    }
+  ],
+  "proposed_tests": [
+    {
+      "id": "P1",
+      "for": "F1",
+      "text": "Load a large ticket list and start startTurnOver. While it runs, add tickets from the test thread. Join the thread, then assert that no exception reached an uncaught-exception handler and that the reported total equals either the before or after total for that route."
+    },
+    {
+      "id": "P2",
+      "for": "F2",
+      "text": "Run Main with System.in set to '3\\nTerschelling\\nVlieland\\n5\\n' and System.out captured. After the program ends, assert that the output contains the 155-euro line exactly once."
+    },
+    {
+      "id": "P3",
+      "for": "F3",
+      "text": "Call startTurnOver with a callback that throws. Assert that the failure is reported in a defined way, such as a user-facing message or a handler being called, rather than lost."
+    }
+  ],
+  "refusals": [
+    {
+      "id": "R1",
+      "category": "concurrency",
+      "question": "How consistent should the Option 3 total be when tickets are sold while the query is running?",
+      "why": "This decides whether ticket sales may be blocked, or the data copied, while the query runs. That is a trade-off between data correctness and ticket availability, which the issue names as the goal but does not resolve.",
+      "agent_choice": "No synchronization. The worker reads the live list while sales continue.",
+      "options": [
+        "Copy the list when the query starts and count the copy",
+        "Make ticket access thread-safe (synchronized or a concurrent collection)",
+        "Accept the race as-is for this exam scope"
+      ],
+      "evidence": [
+        "F1",
+        "C5",
+        "C18"
+      ]
+    },
+    {
+      "id": "R2",
+      "category": "requirement-ambiguity",
+      "question": "Should the menu wait for the Option 3 result or come back right away?",
+      "why": "'Executed in a thread' is met either way. 'Tickets stay available' points to not waiting, but then the output order is unpredictable. The issue does not say which matters more.",
+      "agent_choice": "Do not wait. The result is printed whenever the thread finishes.",
+      "options": [
+        "Keep the current behaviour (async, print when done)",
+        "Join the thread before showing the menu again",
+        "Queue the result and print it at the next menu redraw"
+      ],
+      "evidence": [
+        "F2",
+        "C4",
+        "C17"
+      ]
+    },
+    {
+      "id": "R3",
+      "category": "public-contract",
+      "question": "Is a new public method that returns a raw started Thread and takes a Consumer the API you want on Terminal?",
+      "why": "This adds a public contract that callers and tests will depend on. Other shapes like Future or CompletableFuture would change how errors and waiting work.",
+      "agent_choice": "public Thread startTurnOver(String, String, Consumer<String>), keeping toStringTurnOver as it was.",
+      "options": [
+        "Keep the Thread + Consumer API",
+        "Return a CompletableFuture<String> instead",
+        "Use an ExecutorService owned by Terminal and return a Future"
+      ],
+      "evidence": [
+        "C7",
+        "C8",
+        "F3"
+      ]
+    }
+  ],
+  "source": "llm",
+  "source_note": "claude CLI (opus), 2026-11-14 11:50 UTC, $0.27, cached in review.llm.json"
+}

@@ -1,81 +1,112 @@
-"""Serve the reviewer page: python -m trust.serve 2283 [--port 8283] [--no-open]
+"""Serve the reviewer: python -m trust.serve [--port 8283] [--no-open]
 
-Standard library only. The page reads /api/state and posts decisions to /api/decide.
+Standard library only. Every built dossier is a case the page can switch to:
+GET /api/cases, GET /api/state?case=<id>, POST /api/decide {case, item, decision, note}.
+Everything else is a static file from web/.
 """
 
 import json
+import mimetypes
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from . import decisions
 
 ROOT = Path(__file__).resolve().parent.parent
+WEB = ROOT / "web"
 
 
-def state(issue):
-    d = json.loads((ROOT / "dossier" / f"{issue}.json").read_text())
-    records = decisions.load(issue)
-    return {"dossier": d, "decisions": decisions.latest(records),
+def dossier(case):
+    return json.loads((ROOT / "dossier" / f"{case}.json").read_text())
+
+
+def cases():
+    """The built cases, for the switcher: id, label, title, language and how many decisions are open."""
+    out = []
+    for path in sorted((ROOT / "dossier").glob("*.json")):
+        d, done = json.loads(path.read_text()), decisions.latest(decisions.load(path.stem))
+        c = d["case"]
+        out.append({"id": path.stem, "label": c.get("label", f"#{c['issue']}"), "title": c["title"],
+                    "language": c.get("language", ""), "open": sum(r["id"] not in done for r in d["refusals"]),
+                    "outcome": done.get("MERGE", {}).get("decision")})
+    return out
+
+
+def state(case):
+    d, records = dossier(case), decisions.load(case)
+    return {"case": case, "dossier": d, "decisions": decisions.latest(records),
             "blockers": decisions.merge_blockers(d, records), "measured": decisions.measured(d, records)}
 
 
-def decide(issue, item, decision):
-    """Record a decision. Who decides and on what evidence comes from the dossier, never from the page."""
-    d = json.loads((ROOT / "dossier" / f"{issue}.json").read_text())
+def who_decides(d, records, item, decision):
+    """(owner, evidence) for a valid decision, or None. Who decides comes from the dossier, never the page."""
     refusal = next((r for r in d["refusals"] if r["id"] == item), None)
-    finding = next((f for f in d["findings"] if f["id"] == item), None)
+    unit = next((u for u in d["units"] if u["id"] == item), None)
     approver = d["owners"]["approver"]
     if refusal and (decision in refusal["options"] or decision == "reopen"):
-        by, evidence = refusal["owner"], refusal["evidence"]
-    elif finding and decision in ("real", "not real"):
-        by, evidence = approver, finding["checks"]
-    elif item == "MERGE" and not decisions.merge_blockers(d, decisions.load(issue)):
-        by, evidence, decision = approver, [d["id"]], "approved"
-    else:
+        return refusal["owner"], refusal["evidence"]
+    if unit and unit["status"] == "held" and decision in ("accepted without proof", "reopen"):
+        return approver, [unit["id"]]                       # the approver takes the missing proof on themselves
+    if item == "MERGE" and decision == "approved" and not decisions.merge_blockers(d, records):
+        return approver, [d["id"]]
+    if item == "MERGE" and decision in ("changes requested", "reopen"):
+        return approver, [d["id"]]
+    return None
+
+
+def decide(case, item, decision, note=""):
+    d, records = dossier(case), decisions.load(case)
+    found = who_decides(d, records, item, decision)
+    if not found:
         raise ValueError(f"not a valid decision: {item} / {decision}")
-    decisions.record(issue, d["id"], item, decision, by, evidence)
+    decisions.record(case, d["id"], item, decision, found[0], found[1], note)
 
 
-def handler(issue):
-    class Handler(BaseHTTPRequestHandler):
-        def send(self, body, kind, code=200):
-            self.send_response(code)
-            self.send_header("Content-Type", kind)
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(body)
+class Handler(BaseHTTPRequestHandler):
+    def send(self, body, kind, code=200):
+        self.send_response(code)
+        self.send_header("Content-Type", kind)
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
-        def do_GET(self):
-            if self.path == "/api/state":
-                self.send(json.dumps(state(issue)).encode(), "application/json")
-            else:
-                self.send((ROOT / "web" / "index.html").read_bytes(), "text/html; charset=utf-8")
+    def send_json(self, value):
+        self.send(json.dumps(value).encode(), "application/json")
 
-        def do_POST(self):
-            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            try:
-                decide(issue, body["item"], body["decision"])
-            except (KeyError, ValueError) as e:
-                return self.send(str(e).encode(), "text/plain", 400)
-            self.send(json.dumps(state(issue)).encode(), "application/json")
+    def do_GET(self):
+        url = urlparse(self.path)
+        if url.path == "/api/cases":
+            return self.send_json(cases())
+        if url.path == "/api/state":
+            return self.send_json(state(parse_qs(url.query).get("case", ["2283"])[0]))
+        path = (WEB / url.path.lstrip("/")).resolve()
+        if url.path == "/" or not path.is_file() or WEB not in path.parents:
+            path = WEB / "index.html"
+        self.send(path.read_bytes(), mimetypes.guess_type(path.name)[0] or "application/octet-stream")
 
-        def log_message(self, *args):
-            pass
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        try:
+            decide(body["case"], body["item"], body["decision"], body.get("note", ""))
+        except (KeyError, ValueError, FileNotFoundError) as e:
+            return self.send(str(e).encode(), "text/plain", 400)
+        self.send_json(state(body["case"]))
 
-    return Handler
+    def log_message(self, *args):
+        pass
 
 
 def main():
     args = sys.argv[1:]
-    issue = next((a for a in args if a.isdigit()), "2283")
     port = int(args[args.index("--port") + 1]) if "--port" in args else 8283
     url = f"http://localhost:{port}"
-    print(f"Earned Trust reviewer for #{issue}: {url}  (Ctrl+C to stop)")
+    print(f"Earned Trust reviewer: {url}  (Ctrl+C to stop)")
     if "--no-open" not in args:
         webbrowser.open(url)
-    ThreadingHTTPServer(("127.0.0.1", port), handler(issue)).serve_forever()
+    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
 
 
 if __name__ == "__main__":

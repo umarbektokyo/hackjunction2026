@@ -6,5 +6,11 @@
   "base": "ju26-issue-2283~1",
   "head": "ju26-issue-2283",
   "author": "agent (commit 9df83c38, branch ju26-issue-2283)",
-  "test_project": "tests/MessagePack.SourceGenerator.Tests"
+  "label": "#2283",
+  "language": "C#",
+  "tests": {
+    "kind": "dotnet",
+    "project": "tests/MessagePack.SourceGenerator.Tests",
+    "src": "src"
+  }
 }

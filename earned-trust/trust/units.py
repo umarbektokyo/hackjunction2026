@@ -1,7 +1,7 @@
-"""Split a diff into units: changed C# members, Markdown sections and file headers.
+"""Split a diff into units: changed C# or Java members, Markdown sections and file headers.
 
-C# members are found by indentation (class members sit at four spaces in this codebase), not by a
-parser. That is enough for the sample and is stated as a limit in CONCEPT.md.
+Members are found by indentation (class members sit at four spaces in both samples), not by a
+parser. That is enough for the samples and is stated as a limit in CONCEPT.md.
 """
 
 import re
@@ -18,7 +18,7 @@ def tier(path):
 
 
 def _is_decl(line):
-    if not line.startswith(MEMBER_INDENT) or line[4:5] in (" ", "", "{", "}", "/", "["):
+    if not line.startswith(MEMBER_INDENT) or line[4:5] in (" ", "", "{", "}", "/", "[", "@"):
         return False
     return not line.strip().startswith(("#", "return", "//"))
 
@@ -43,7 +43,7 @@ def _end(lines, i):
 
 
 def csharp_members(lines):
-    """[(name, start, end)] with 1-based inclusive lines; start includes doc comments and attributes."""
+    """[(name, start, end)] with 1-based inclusive lines; start includes doc comments, attributes and annotations."""
     members, in_raw, i = [], False, 0
     while i < len(lines):
         line = lines[i]
@@ -56,7 +56,7 @@ def csharp_members(lines):
             continue
         m = NAME.search(line) or FIELD.search(line)
         start = i
-        while start > 0 and lines[start - 1].startswith(MEMBER_INDENT) and lines[start - 1].strip()[:1] in ("/", "["):
+        while start > 0 and lines[start - 1].startswith(MEMBER_INDENT) and lines[start - 1].strip()[:1] in ("/", "[", "*", "@"):
             start -= 1
         end = _end(lines, i)
         name = m[1] if m else line.strip()

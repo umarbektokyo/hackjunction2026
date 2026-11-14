@@ -7,7 +7,13 @@
   "base": "ju26-issue-2283~1",
   "head": "ju26-issue-2283",
   "author": "agent (commit 9df83c38, branch ju26-issue-2283)",
-  "test_project": "tests/MessagePack.SourceGenerator.Tests"
+  "label": "#2283",
+  "language": "C#",
+  "tests": {
+   "kind": "dotnet",
+   "project": "tests/MessagePack.SourceGenerator.Tests",
+   "src": "src"
+  }
  },
  "issue_text": "# #2283 Generator and analyzer crash with IndexOutOfRangeException on a closed generic struct from a referenced assembly\n\nSource: https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/2283\n\n#### Bug description\n\nBoth `MessagePackGenerator` (CS8785) and `MsgPack00xMessagePackAnalyzer` (AD0001) throw `IndexOutOfRangeException` when a `[MessagePackObject]` type has a member whose type is a **closed generic value type defined in a referenced assembly**.\n\nBecause the generator then \"will not contribute to the output\", the compiling assembly silently ends up with **no generated resolver at all**. It is only a warning, so a normal build looks fine, but trimmed and NativeAOT apps fail at runtime. In our case three assemblies of a large app had been shipping without a resolver across two releases before we noticed.\n\n#### Repro steps\n\nTwo projects. `lib`:\n\n```csharp\nusing MessagePack;\nnamespace Lib;\n\n[MessagePackObject]\npublic partial record struct Item<T>([property: Key(0)] string Key);\n```\n\n`app`, with a `ProjectReference` to `lib`:\n\n```csharp\nusing MessagePack; using Lib;\nnamespace App;\n\n[MessagePackObject]\npublic sealed partial record Cmd([property: Key(0)] string Scope)\n{\n    [Key(1)] public Item<int> Member { get; init; }\n}\n```\n\nThen `dotnet build` on `app`. Both projects are in the attached `mp-repro.zip`.\n\n#### Expected behavior\n\nA clean build, with a generated resolver in `app`.\n#### Actual behavior\n\n```\nCSC : warning CS8785: Generator 'MessagePackGenerator' failed to generate source. It will not\ncontribute to the output and compilation errors may occur as a result. Exception was of type\n'IndexOutOfRangeException' with message 'Index was outside the bounds of the array.'.\nCSC : warning AD0001: Analyzer 'MessagePack.SourceGenerator.Analyzers.MsgPack00xMessagePackAnalyzer'\nthrew an exception of type 'System.IndexOutOfRangeException' with message 'Index was outside the\nbounds of the array.'.\n```\n\n`app.dll` contains no `GeneratedMessagePackResolver`.\n\n- Version used: MessagePack 3.1.8\n- Runtime: .NET 10 (SDK 10.0.204), Windows 11\n\n#### Additional context\n\n**What triggers it.** `Item` is declared in `lib`, `Cmd` in `app`:\n\n| `Item` declared as | result |\n|---|---|\n| `record struct Item<T>` | **crash** |\n| `struct Item<T>` | **crash** |\n| `struct Item` | ok |\n| `record struct Item` | ok |\n| `class Item<T>` | ok |\n| `record class Item<T>` | ok |\n\nSo it needs all three of: **generic**, **value type**, **from a referenced assembly**. Moving the identical `Item<T>` declaration into `app` itself makes the crash disappear, which is what makes this specific to metadata symbols.\n**Stack trace.**\n\n```\nSystem.IndexOutOfRangeException: Index was outside the bounds of the array.\n   at TypeCollector.GetObjectInfo(INamedTypeSymbol formattedType, ISymbol callerSymbol)\n   at TypeCollector.CollectGeneric(INamedTypeSymbol type, ISymbol callerSymbol) in TypeCollector.cs:line 661\n   at TypeCollector.CollectCore(ITypeSymbol typeSymbol, ISymbol callerSymbol) in TypeCollector.cs:line 371\n   at TypeCollector.GetObjectInfo(INamedTypeSymbol formattedType, ISymbol callerSymbol) in TypeCollector.cs:line 1062\n   at TypeCollector.CollectCore(ITypeSymbol typeSymbol, ISymbol callerSymbol) in TypeCollector.cs:line 386\n   at TypeCollector.Collect() in TypeCollector.cs:line 300\n   at MsgPack00xMessagePackAnalyzer.AnalyzeSymbol(SymbolAnalysisContext, ReferenceSymbols, AnalyzerOptions) in MsgPack00xMessagePackAnalyzer.cs:line 431\n```\n\n`CollectGeneric` line 661 is the closed-generic branch that calls `GetObjectInfo` directly:\n\n```csharp\nelse\n{\n    // NOTE: ... closed generic types such as `Foo<string>` are not registered as a formatter.\n    this.GetObjectInfo(type, callerSymbol);\n```\n\nso `GetObjectInfo` runs against a type that has no syntax. Several diagnostic paths inside it index `DeclaringSyntaxReferences[0]` directly (lines 735, 1009, 1101) instead of using `FirstOrDefault()` the way the neighbouring `GetIdentifierLocation` / `GetLocation` / `GetParameterListLocation` helpers already do, and that collection is empty for a metadata symbol. I did not narrow down which of the three fires.\n\n**Getting the stack trace.** Console output truncates the exception to its message; `-p:ErrorLog=out.sarif` preserves the full description, including the stack trace and an `ISymbol:` context line naming the offending type:\n\n```\ndotnet build -p:ErrorLog=out.sarif\n```\n\n**Workaround.** Putting `[MessagePackFormatter(typeof(ItemFormatter<>))]` on the generic value type short-circuits `CollectCore` (line 356) before `GetObjectInfo` is reached, at the cost of hand-writing the formatter.\n\n**Possibly related:** #2092 reports CS8785 from the v3 generator, but with a different inner exception and no repro.\n\n[mp-repro.zip](https://github.com/user-attachments/files/30408133/mp-repro.zip)\n",
  "owners": {
@@ -374,6 +380,118 @@
      ],
      "callers": [
       {
+       "file": "sandbox/PerfNetFramework/Measure.cs",
+       "line": 17,
+       "member": "internal struct Measure : IDisposable",
+       "text": "System.GC.Collect(2, GCCollectionMode.Forced, blocking: true);",
+       "excerpt": [
+        {
+         "line": 15,
+         "text": "        {"
+        },
+        {
+         "line": 16,
+         "text": "            this.label = label;"
+        },
+        {
+         "line": 17,
+         "text": "            System.GC.Collect(2, GCCollectionMode.Forced, blocking: true);"
+        },
+        {
+         "line": 18,
+         "text": "            if (!Program.Deserializing)"
+        },
+        {
+         "line": 19,
+         "text": "            {"
+        }
+       ]
+      },
+      {
+       "file": "sandbox/PerfNetFramework/Measure.cs",
+       "line": 44,
+       "member": "internal struct Measure : IDisposable",
+       "text": "System.GC.Collect(2, GCCollectionMode.Forced, blocking: true);",
+       "excerpt": [
+        {
+         "line": 42,
+         "text": "            Console.WriteLine($\"{this.label,-25}   {this.sw.Elapsed.TotalMilliseconds,12:F2} ms\");"
+        },
+        {
+         "line": 43,
+         "text": ""
+        },
+        {
+         "line": 44,
+         "text": "            System.GC.Collect(2, GCCollectionMode.Forced, blocking: true);"
+        },
+        {
+         "line": 45,
+         "text": "        }"
+        },
+        {
+         "line": 46,
+         "text": "    }"
+        }
+       ]
+      },
+      {
+       "file": "sandbox/Sandbox/Program.cs",
+       "line": 688,
+       "member": "internal struct Measure : IDisposable",
+       "text": "System.GC.Collect(2, GCCollectionMode.Forced, blocking: true);",
+       "excerpt": [
+        {
+         "line": 686,
+         "text": "        {"
+        },
+        {
+         "line": 687,
+         "text": "            this.label = label;"
+        },
+        {
+         "line": 688,
+         "text": "            System.GC.Collect(2, GCCollectionMode.Forced, blocking: true);"
+        },
+        {
+         "line": 689,
+         "text": "            this.sw = Stopwatch.StartNew();"
+        },
+        {
+         "line": 690,
+         "text": "        }"
+        }
+       ]
+      },
+      {
+       "file": "sandbox/Sandbox/Program.cs",
+       "line": 697,
+       "member": "internal struct Measure : IDisposable",
+       "text": "System.GC.Collect(2, GCCollectionMode.Forced, blocking: true);",
+       "excerpt": [
+        {
+         "line": 695,
+         "text": "            Console.WriteLine($\"{this.label,20}   {this.sw.Elapsed.TotalMilliseconds} ms\");"
+        },
+        {
+         "line": 696,
+         "text": ""
+        },
+        {
+         "line": 697,
+         "text": "            System.GC.Collect(2, GCCollectionMode.Forced, blocking: true);"
+        },
+        {
+         "line": 698,
+         "text": "        }"
+        },
+        {
+         "line": 699,
+         "text": "    }"
+        }
+       ]
+      },
+      {
        "file": "src/MessagePack.SourceGenerator/Analyzers/MsgPack00xMessagePackAnalyzer.cs",
        "line": 430,
        "member": "AnalyzeSymbol",
@@ -398,6 +516,34 @@
         {
          "line": 432,
          "text": "        }"
+        }
+       ]
+      },
+      {
+       "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+       "line": 30,
+       "member": "Initialize",
+       "text": "messagePackObjectTypes.Collect().Combine(unionTypes.Collect());",
+       "excerpt": [
+        {
+         "line": 28,
+         "text": ""
+        },
+        {
+         "line": 29,
+         "text": "        var combined ="
+        },
+        {
+         "line": 30,
+         "text": "            messagePackObjectTypes.Collect().Combine(unionTypes.Collect());"
+        },
+        {
+         "line": 31,
+         "text": ""
+        },
+        {
+         "line": 32,
+         "text": "        var source = combined"
         }
        ]
       },
@@ -1985,14 +2131,14 @@
      "evidence": [
       "REQ-2283-4"
      ],
-     "required": true
+     "required": false
     },
     "checked": {
      "state": "pass",
      "evidence": [
       "C15"
      ],
-     "required": true
+     "required": false
     },
     "executed": {
      "state": "missing",
@@ -4868,5 +5014,5 @@
   "findings": 8,
   "refusals": 2
  },
- "id": "6ed3f0b46451"
+ "id": "a79acc512c2a"
 }

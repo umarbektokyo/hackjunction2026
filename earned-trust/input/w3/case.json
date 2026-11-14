@@ -1,0 +1,20 @@
+{
+  "issue": "W3",
+  "label": "REQ-W3",
+  "language": "Java",
+  "title": "Option 3 (route turnover) runs in a thread",
+  "url": "Waddenislands/programming_exam_nov_2024.pdf",
+  "repo": "sample-wadden",
+  "base": "main",
+  "head": "agent/req-w3-thread",
+  "author": "agent (claude sonnet via claude -p, file tools only; transcript in input/w3/agent.json)",
+  "tests": {
+    "kind": "junit",
+    "src": "src",
+    "tests": "tests"
+  },
+  "style": {
+    "kind": "checkstyle",
+    "config": "checkstyle.xml"
+  }
+}

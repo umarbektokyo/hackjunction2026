@@ -1,7 +1,11 @@
 #!/bin/sh
-# One command: fetch the sample repo if missing, rebuild the dossier, open the reviewer in the browser.
+# One command: build the sample repos, rebuild every case's dossier, open the reviewer at :8283.
+# Tests run when the toolchain exists (.NET 8 for #2283, a JDK for REQ-W3), else they show "not run".
+# Pass --reuse-tests to rebuild without running them again.
 set -e
 cd "$(dirname "$0")"
-[ -d sample-repo ] || git clone -q -b ju26-issue-2283 https://github.com/te-industry-tech-office/junction26-messagepack-csharp sample-repo
-python3 -m trust.build 2283
-exec python3 -m trust.serve 2283 "$@"
+./samples.sh
+for case in input/*/case.json; do
+    python3 -m trust.build "$(basename "$(dirname "$case")")" "$@"
+done
+exec python3 -m trust.serve

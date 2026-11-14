@@ -1,15 +1,11 @@
-"""Deterministic evidence: call sites, claim checks, test runs and the four gates per unit."""
+"""Deterministic evidence: call sites, claim checks and the four gates per unit. Test runs: testrun.py."""
 
 import re
-import shutil
 from collections import Counter
 import subprocess
-from pathlib import Path
 
 from .gitdiff import git, show
 from .units import spans
-
-ROOT = Path(__file__).resolve().parent.parent
 
 GATES_REQUIRED = {"shipped": ("traced", "checked", "executed", "uncontested"),
                   "test": ("traced", "checked", "uncontested"),
@@ -69,19 +65,18 @@ def calls_out(repo, rev, unit):
 def callers(repo, rev, name, home, own_member, pattern=None):
     """Call sites of member `name` declared in file `home`, outside `own_member`, with their enclosing member.
 
-    By name, not by symbol: an unqualified call counts only in `home`, a qualified one only as
-    `<Class>.name(` where Class is the file's stem. Calls through other receivers are missed (a stated limit).
+    By name, not by symbol: an unqualified call counts only in `home`; a call through a receiver
+    (`x.name(`) counts anywhere. Same-named members of other classes can show up (a stated limit).
     """
-    cls = home.rsplit("/", 1)[-1].split(".")[0]
     try:
-        out = git(repo, "grep", "-n", "-E", pattern or rf"{name} *\(", rev, "--", "*.cs")
+        out = git(repo, "grep", "-n", "-E", pattern or rf"{name} *\(", rev, "--", "*" + home[home.rfind("."):])
     except subprocess.CalledProcessError:   # git grep exits 1 when nothing matches
         return []
     sites = []
     for line in out.splitlines():
         _, path, no, text = line.split(":", 3)
         local = path == home and re.search(rf"(?<![\w.])(this\.)?{name} *\(", text)
-        if not (pattern or local or re.search(rf"\b{cls}\.{name} *\(", text)) or text.strip().startswith("//"):
+        if not (pattern or local or re.search(rf"\w\.{name} *\(", text)) or text.strip().startswith(("//", "*", "/*")):
             continue
         member = _member_at(repo, rev, path, int(no))
         if (path, member) != (home, own_member):
@@ -111,49 +106,6 @@ def run_check(repo, rev, issue_lines, check):
     return {**check, "holds": holds, "count": len(matches), "matches": matches[:8]}
 
 
-def _checkout(repo, rev, name, revert=None):
-    """A worktree of `rev` under .work/<name>; with revert=(base, path) that path is put back to base."""
-    path = ROOT / ".work" / name
-    if not path.exists():
-        git(repo, "worktree", "add", "--force", "--detach", str(path), rev)
-    git(str(path), "checkout", "-q", "--detach", rev)
-    git(str(path), "checkout", "-q", rev, "--", ".")
-    if revert:
-        git(str(path), "checkout", "-q", revert[0], "--", revert[1])
-    return str(path)
-
-
-def _dotnet_test(cwd, project, names):
-    flt = "|".join(f"FullyQualifiedName~{n}" for n in names)
-    out = subprocess.run(["dotnet", "test", project, "--filter", flt, "--logger", "console;verbosity=normal"],
-                         cwd=cwd, capture_output=True, text=True).stdout
-    return {n: "passed" if re.search(rf"Passed\s+\S*\b{n}\b", out) else
-               "failed" if re.search(rf"Failed\s+\S*\b{n}\b", out) else "not found in output" for n in names}
-
-
-def run_tests(repo, project, names, head, base, source="src"):
-    """Run the named tests with `dotnet test` when the SDK exists, twice: on the change, and on the change
-    with its source reverted to base. A test is evidence for the fix only if it passes with the change and
-    fails without it. Never reports a pass it did not see."""
-    if not names:
-        return {}
-    if not shutil.which("dotnet"):
-        return {n: {"status": "not run", "why": ".NET SDK not installed on the review machine"} for n in names}
-    rev = git(repo, "rev-parse", head).strip()[:10]
-    here = _dotnet_test(_checkout(repo, head, rev), project, names)
-    without = _dotnet_test(_checkout(repo, head, rev + "-without-fix", (base, source)), project, names)
-    result = {}
-    for n in names:
-        if here[n] == "passed" and without[n] == "failed":
-            why = "passes with the change and fails without it: it tests the fix"
-        elif here[n] == "passed":
-            why = f"passes with the change, and {without[n]} without it: it does not test the fix"
-        else:
-            why = f"{here[n]} with the change"
-        result[n] = {"status": here[n], "without_fix": without[n], "proves_fix": here[n] == "passed" and without[n] == "failed", "why": why}
-    return result
-
-
 def gates(unit, checks, tests, refusals):
     """Gate states: 'pass', 'fail' or 'missing', each with the evidence it rests on."""
     mine = [c for c in checks if unit["id"] in c.get("units", [])]
@@ -168,7 +120,8 @@ def gates(unit, checks, tests, refusals):
                       sorted(Counter(tests[t]["status"] for t in covering).items())]),
         "uncontested": ("pass", []) if not refusals else ("fail", [r["id"] for r in refusals]),
     }
-    required = GATES_REQUIRED[unit["tier"]]
+    # Imports and usings: the compiler checks them; they only need to go uncontested.
+    required = ("uncontested",) if unit["name"] == "file header" else GATES_REQUIRED[unit["tier"]]
     if refusals:
         status = "routed"
     elif all(g[k][0] == "pass" for k in required):

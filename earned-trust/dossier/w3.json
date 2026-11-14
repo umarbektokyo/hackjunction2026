@@ -1,0 +1,1485 @@
+{
+ "case": {
+  "issue": "W3",
+  "label": "REQ-W3",
+  "language": "Java",
+  "title": "Option 3 (route turnover) runs in a thread",
+  "url": "Waddenislands/programming_exam_nov_2024.pdf",
+  "repo": "sample-wadden",
+  "base": "main",
+  "head": "agent/req-w3-thread",
+  "author": "agent (claude sonnet via claude -p, file tools only; transcript in input/w3/agent.json)",
+  "tests": {
+   "kind": "junit",
+   "src": "src",
+   "tests": "tests"
+  },
+  "style": {
+   "kind": "checkstyle",
+   "config": "checkstyle.xml"
+  }
+ },
+ "issue_text": "# REQ-W3: Option 3 runs in a thread\n\nSource: CSE1100 programming exam, 06-11-2024, \"Wadden Islands Ferry Company\" (`Waddenislands/programming_exam_nov_2024.pdf`, page 4).\nThe base is the human-written exam solution in `Waddenislands/`; this change was written by an agent.\n\n## Option 3 (existing behaviour)\n\nThe total amount of all tickets issued for a certain route (e.g., Texel \u2013 Vlieland; a route is\nuni-directional, so Vlieland \u2013 Texel is a different route!) is calculated and shown on the screen.\nThe route is requested from the user through the command line. Example output:\n\n    All tickets in the database for the route Terschelling -> Vlieland combined are worth 155 euros.\n\n## Extension (this requirement)\n\nWhile the current input file is rather small, it can be expected that the database will grow quite\nlarge during the tourist season. Tickets need to stay available while running the Option 3 query.\nThat is why you should implement Option 3 to make use of threads. Please ensure that Option 3 is\nexecuted in a thread.\n\n## Standards that apply to every change\n\n- At least one unit test per non-trivial method (constructors, getters, setters and methods that\n  only read user input or files are exempt); aim for 75% line coverage.\n- Nice programming style, checked with CheckStyle (`checkstyle.xml`): method length, number of\n  parameters, cyclomatic complexity, Javadoc, line length.\n- The menu loops; option 5 stops the program.\n",
+ "owners": {
+  "note": "Synthetic people. Every category has exactly one named owner.",
+  "routing": {
+   "requirement-ambiguity": {
+    "name": "Jussi Heikkinen",
+    "role": "Product owner, Wadden Islands Ferry Company"
+   },
+   "concurrency": {
+    "name": "Leena Koskinen",
+    "role": "Platform engineer, owns threading and shared state"
+   },
+   "public-contract": {
+    "name": "Mikko Laine",
+    "role": "Owner of the terminal interface and its output"
+   },
+   "security": {
+    "name": "Leena Koskinen",
+    "role": "Security champion"
+   }
+  },
+  "approver": {
+   "name": "Sara Nieminen",
+   "role": "Change approver, accountable for the merge"
+  }
+ },
+ "review_source": {
+  "kind": "llm",
+  "note": "claude CLI (opus), 2026-11-14 11:50 UTC, $0.27, cached in review.llm.json"
+ },
+ "requirements": [
+  {
+   "id": "REQ-W3-1",
+   "kind": "functional",
+   "text": "Option 3 (total value of all tickets for a route) runs in a separate thread.",
+   "source": "@issue: Extension, 'Please ensure that Option 3 is executed in a thread.'"
+  },
+  {
+   "id": "REQ-W3-2",
+   "kind": "functional",
+   "text": "Tickets stay available (other menu options can be used) while the Option 3 query runs.",
+   "source": "@issue: Extension, 'Tickets need to stay available while running the Option 3 query.'"
+  },
+  {
+   "id": "REQ-W3-3",
+   "kind": "functional",
+   "text": "Option 3 keeps its output format: 'All tickets in the database for the route <from> -> <to> combined are worth <n> euros.'",
+   "source": "@issue: Option 3 (existing behaviour)"
+  },
+  {
+   "id": "REQ-W3-4",
+   "kind": "functional",
+   "text": "A route is one-way: Vlieland -> Texel is a different route from Texel -> Vlieland.",
+   "source": "@issue: Option 3 (existing behaviour)"
+  },
+  {
+   "id": "REQ-W3-5",
+   "kind": "functional",
+   "text": "The menu loops, and option 5 stops the program.",
+   "source": "@issue: Standards"
+  },
+  {
+   "id": "REQ-W3-6",
+   "kind": "non-functional",
+   "text": "At least one unit test per non-trivial method, aiming for 75% line coverage.",
+   "source": "@issue: Standards"
+  },
+  {
+   "id": "REQ-W3-7",
+   "kind": "non-functional",
+   "text": "Code passes CheckStyle (checkstyle.xml): method length, parameter count, cyclomatic complexity, Javadoc, line length.",
+   "source": "@issue: Standards"
+  }
+ ],
+ "units": [
+  {
+   "id": "Main.java:main",
+   "file": "src/Main.java",
+   "name": "main",
+   "tier": "shipped",
+   "start": 5,
+   "end": 48,
+   "added": 1,
+   "removed": 1,
+   "lines": [
+    {
+     "kind": " ",
+     "old": 28,
+     "new": 28,
+     "text": "                    String departureCity = input.nextLine();"
+    },
+    {
+     "kind": " ",
+     "old": 29,
+     "new": 29,
+     "text": "                    System.out.print(\"Arrival City: \");"
+    },
+    {
+     "kind": " ",
+     "old": 30,
+     "new": 30,
+     "text": "                    String arrivalCity = input.nextLine();"
+    },
+    {
+     "kind": "-",
+     "old": 31,
+     "new": null,
+     "text": "                    System.out.println(terminal.toStringTurnOver(departureCity, arrivalCity));"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 31,
+     "text": "                    terminal.startTurnOver(departureCity, arrivalCity, System.out::println);"
+    },
+    {
+     "kind": " ",
+     "old": 32,
+     "new": 32,
+     "text": "                }"
+    },
+    {
+     "kind": " ",
+     "old": 33,
+     "new": 33,
+     "text": "                case \"4\" -> {"
+    },
+    {
+     "kind": " ",
+     "old": 34,
+     "new": 34,
+     "text": "                    System.out.print(\"Listing All Passengers in a Route:\\nDeparture City: \");"
+    }
+   ],
+   "reqs": [
+    "REQ-W3-1",
+    "REQ-W3-2",
+    "REQ-W3-5"
+   ],
+   "summary": "Option 3 now calls terminal.startTurnOver(..., System.out::println) instead of printing toStringTurnOver directly. It does not wait for the thread, so the menu comes back right away and the result is printed whenever it is ready.",
+   "covered_by": [],
+   "body": [
+    "    /**",
+    "     * Main singleton loop running the game.",
+    "     */",
+    "    void main() throws FileNotFoundException {",
+    "        Scanner input = new Scanner(System.in);",
+    "        System.out.print(\"Data file: \"); String fileName = input.nextLine();",
+    "        if (fileName.isEmpty()) { fileName = \"resources/waddenislands.txt\"; }",
+    "",
+    "        Terminal terminal = ParseMaster.readFile(fileName);",
+    "",
+    "        while (true) {",
+    "            System.out.print(printMenu());",
+    "            switch (input.nextLine()) {",
+    "                case \"1\" -> {",
+    "                    System.out.println(terminal);",
+    "                }",
+    "                case \"2\" -> {",
+    "                    System.out.print(\"What date would you want to sort by? (ex: 23-10-2024)\\n\" +",
+    "                            \"Date: \");",
+    "                    System.out.println(terminal.toStringDate(input.nextLine()));",
+    "                }",
+    "                case \"3\" -> {",
+    "                    System.out.print(\"Route Turn-Over Calculation:\\nDeparture City: \");",
+    "                    String departureCity = input.nextLine();",
+    "                    System.out.print(\"Arrival City: \");",
+    "                    String arrivalCity = input.nextLine();",
+    "                    terminal.startTurnOver(departureCity, arrivalCity, System.out::println);",
+    "                }",
+    "                case \"4\" -> {",
+    "                    System.out.print(\"Listing All Passengers in a Route:\\nDeparture City: \");",
+    "                    String departureCity = input.nextLine();",
+    "                    System.out.print(\"Arrival City: \");",
+    "                    String arrivalCity = input.nextLine();",
+    "                    System.out.println(",
+    "                            terminal.toStringRoutePassengerList(departureCity, arrivalCity));",
+    "                }",
+    "                case \"5\" -> {",
+    "                    System.out.print(\"Thank you for using our services :)\\n\" +",
+    "                            \" - Wadden Islands Ferry Company\\n\");",
+    "                    System.exit(0);",
+    "                }",
+    "            }",
+    "        }",
+    "    }"
+   ],
+   "callers": [],
+   "calls": [],
+   "gates": {
+    "traced": {
+     "state": "pass",
+     "evidence": [
+      "REQ-W3-1",
+      "REQ-W3-2",
+      "REQ-W3-5"
+     ],
+     "required": true
+    },
+    "checked": {
+     "state": "fail",
+     "evidence": [
+      "C1",
+      "C4",
+      "C17",
+      "C18",
+      "C19"
+     ],
+     "required": true
+    },
+    "executed": {
+     "state": "missing",
+     "evidence": [
+      "no covering test"
+     ],
+     "required": true
+    },
+    "uncontested": {
+     "state": "fail",
+     "evidence": [
+      "R2"
+     ],
+     "required": true
+    }
+   },
+   "status": "routed",
+   "findings": [
+    "F2"
+   ],
+   "refusals": [
+    "R2"
+   ]
+  },
+  {
+   "id": "Terminal.java:file header",
+   "file": "src/Terminal.java",
+   "name": "file header",
+   "tier": "shipped",
+   "start": 1,
+   "end": 6,
+   "added": 1,
+   "removed": 0,
+   "lines": [
+    {
+     "kind": " ",
+     "old": 1,
+     "new": 1,
+     "text": "import java.util.ArrayList;"
+    },
+    {
+     "kind": " ",
+     "old": 2,
+     "new": 2,
+     "text": "import java.util.Objects;"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 3,
+     "text": "import java.util.function.Consumer;"
+    },
+    {
+     "kind": " ",
+     "old": 3,
+     "new": 4,
+     "text": "import java.util.stream.Collectors;"
+    },
+    {
+     "kind": " ",
+     "old": 4,
+     "new": 5,
+     "text": ""
+    },
+    {
+     "kind": " ",
+     "old": 5,
+     "new": 6,
+     "text": "public class Terminal {"
+    }
+   ],
+   "reqs": [
+    "REQ-W3-1"
+   ],
+   "summary": "Adds the java.util.function.Consumer import used by startTurnOver.",
+   "covered_by": [
+    "startTurnOverTest"
+   ],
+   "body": [
+    "import java.util.ArrayList;",
+    "import java.util.Objects;",
+    "import java.util.function.Consumer;",
+    "import java.util.stream.Collectors;",
+    "",
+    "public class Terminal {"
+   ],
+   "callers": [],
+   "calls": [],
+   "gates": {
+    "traced": {
+     "state": "pass",
+     "evidence": [
+      "REQ-W3-1"
+     ],
+     "required": false
+    },
+    "checked": {
+     "state": "missing",
+     "evidence": [
+      "no check"
+     ],
+     "required": false
+    },
+    "executed": {
+     "state": "pass",
+     "evidence": [
+      "1 of 1 tests passed"
+     ],
+     "required": false
+    },
+    "uncontested": {
+     "state": "pass",
+     "evidence": [],
+     "required": true
+    }
+   },
+   "status": "cleared",
+   "findings": [],
+   "refusals": []
+  },
+  {
+   "id": "Terminal.java:startTurnOver",
+   "file": "src/Terminal.java",
+   "name": "startTurnOver",
+   "tier": "shipped",
+   "start": 67,
+   "end": 81,
+   "added": 15,
+   "removed": 0,
+   "lines": [
+    {
+     "kind": "+",
+     "old": null,
+     "new": 67,
+     "text": "    /**"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 68,
+     "text": "     * Runs the turnover calculation (option 3) in its own thread, so the terminal stays"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 69,
+     "text": "     * available for other options (like selling tickets) while it runs."
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 70,
+     "text": "     * @param departureCity String"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 71,
+     "text": "     * @param arrivalCity String"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 72,
+     "text": "     * @param onDone receives the turnover message once the calculation has finished."
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 73,
+     "text": "     * @return the already started thread, join it to wait for the result."
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 74,
+     "text": "     */"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 75,
+     "text": "    public Thread startTurnOver(String departureCity, String arrivalCity,"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 76,
+     "text": "                                Consumer<String> onDone) {"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 77,
+     "text": "        Thread thread = new Thread(() ->"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 78,
+     "text": "                onDone.accept(toStringTurnOver(departureCity, arrivalCity)));"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 79,
+     "text": "        thread.start();"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 80,
+     "text": "        return thread;"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 81,
+     "text": "    }"
+    }
+   ],
+   "reqs": [
+    "REQ-W3-1",
+    "REQ-W3-2",
+    "REQ-W3-3",
+    "REQ-W3-7"
+   ],
+   "summary": "New public method. It starts a new Thread that runs the existing toStringTurnOver, passes the message to a callback, and returns the started thread. There is no synchronization on the ticket data and no exception handling in the thread.",
+   "covered_by": [
+    "startTurnOverTest"
+   ],
+   "body": [
+    "    /**",
+    "     * Runs the turnover calculation (option 3) in its own thread, so the terminal stays",
+    "     * available for other options (like selling tickets) while it runs.",
+    "     * @param departureCity String",
+    "     * @param arrivalCity String",
+    "     * @param onDone receives the turnover message once the calculation has finished.",
+    "     * @return the already started thread, join it to wait for the result.",
+    "     */",
+    "    public Thread startTurnOver(String departureCity, String arrivalCity,",
+    "                                Consumer<String> onDone) {",
+    "        Thread thread = new Thread(() ->",
+    "                onDone.accept(toStringTurnOver(departureCity, arrivalCity)));",
+    "        thread.start();",
+    "        return thread;",
+    "    }"
+   ],
+   "callers": [
+    {
+     "file": "src/Main.java",
+     "line": 31,
+     "member": "main",
+     "text": "terminal.startTurnOver(departureCity, arrivalCity, System.out::println);",
+     "excerpt": [
+      {
+       "line": 29,
+       "text": "                    System.out.print(\"Arrival City: \");"
+      },
+      {
+       "line": 30,
+       "text": "                    String arrivalCity = input.nextLine();"
+      },
+      {
+       "line": 31,
+       "text": "                    terminal.startTurnOver(departureCity, arrivalCity, System.out::println);"
+      },
+      {
+       "line": 32,
+       "text": "                }"
+      },
+      {
+       "line": 33,
+       "text": "                case \"4\" -> {"
+      }
+     ],
+     "callers": []
+    },
+    {
+     "file": "tests/TerminalTest.java",
+     "line": 104,
+     "member": "startTurnOverTest",
+     "text": "Thread thread = term.startTurnOver(\"Terschelling\", \"Vlieland\", s -> {",
+     "excerpt": [
+      {
+       "line": 102,
+       "text": "        AtomicReference<String> result = new AtomicReference<>();"
+      },
+      {
+       "line": 103,
+       "text": "        AtomicReference<Thread> worker = new AtomicReference<>();"
+      },
+      {
+       "line": 104,
+       "text": "        Thread thread = term.startTurnOver(\"Terschelling\", \"Vlieland\", s -> {"
+      },
+      {
+       "line": 105,
+       "text": "            worker.set(Thread.currentThread());"
+      },
+      {
+       "line": 106,
+       "text": "            result.set(s);"
+      }
+     ],
+     "callers": []
+    }
+   ],
+   "calls": [
+    {
+     "member": "toStringTurnOver",
+     "file": "src/Terminal.java",
+     "line": 78,
+     "text": "onDone.accept(toStringTurnOver(departureCity, arrivalCity)));",
+     "decl": 61,
+     "signature": "public String toStringTurnOver(String departureCity, String arrivalCity) {"
+    }
+   ],
+   "gates": {
+    "traced": {
+     "state": "pass",
+     "evidence": [
+      "REQ-W3-1",
+      "REQ-W3-2",
+      "REQ-W3-3",
+      "REQ-W3-7"
+     ],
+     "required": true
+    },
+    "checked": {
+     "state": "fail",
+     "evidence": [
+      "C2",
+      "C3",
+      "C5",
+      "C6",
+      "C7",
+      "C8",
+      "C9",
+      "C10",
+      "C15",
+      "C16",
+      "C17",
+      "C18"
+     ],
+     "required": true
+    },
+    "executed": {
+     "state": "pass",
+     "evidence": [
+      "1 of 1 tests passed"
+     ],
+     "required": true
+    },
+    "uncontested": {
+     "state": "fail",
+     "evidence": [
+      "R1",
+      "R3"
+     ],
+     "required": true
+    }
+   },
+   "status": "routed",
+   "findings": [
+    "F1",
+    "F3",
+    "F4",
+    "F5"
+   ],
+   "refusals": [
+    "R1",
+    "R3"
+   ]
+  },
+  {
+   "id": "TerminalTest.java:file header",
+   "file": "tests/TerminalTest.java",
+   "name": "file header",
+   "tier": "test",
+   "start": 1,
+   "end": 11,
+   "added": 3,
+   "removed": 0,
+   "lines": [
+    {
+     "kind": " ",
+     "old": 2,
+     "new": 2,
+     "text": "import org.junit.jupiter.api.Test;"
+    },
+    {
+     "kind": " ",
+     "old": 3,
+     "new": 3,
+     "text": ""
+    },
+    {
+     "kind": " ",
+     "old": 4,
+     "new": 4,
+     "text": "import java.util.Scanner;"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 5,
+     "text": "import java.util.concurrent.atomic.AtomicReference;"
+    },
+    {
+     "kind": " ",
+     "old": 5,
+     "new": 6,
+     "text": ""
+    },
+    {
+     "kind": " ",
+     "old": 6,
+     "new": 7,
+     "text": "import static org.junit.jupiter.api.Assertions.assertEquals;"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 8,
+     "text": "import static org.junit.jupiter.api.Assertions.assertNotSame;"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 9,
+     "text": "import static org.junit.jupiter.api.Assertions.assertSame;"
+    },
+    {
+     "kind": " ",
+     "old": 7,
+     "new": 10,
+     "text": ""
+    },
+    {
+     "kind": " ",
+     "old": 8,
+     "new": 11,
+     "text": "public class TerminalTest {"
+    }
+   ],
+   "reqs": [
+    "REQ-W3-6"
+   ],
+   "summary": "Adds imports for AtomicReference, assertSame and assertNotSame.",
+   "covered_by": [],
+   "body": [
+    "import org.junit.jupiter.api.BeforeEach;",
+    "import org.junit.jupiter.api.Test;",
+    "",
+    "import java.util.Scanner;",
+    "import java.util.concurrent.atomic.AtomicReference;",
+    "",
+    "import static org.junit.jupiter.api.Assertions.assertEquals;",
+    "import static org.junit.jupiter.api.Assertions.assertNotSame;",
+    "import static org.junit.jupiter.api.Assertions.assertSame;",
+    "",
+    "public class TerminalTest {"
+   ],
+   "callers": [],
+   "calls": [],
+   "gates": {
+    "traced": {
+     "state": "pass",
+     "evidence": [
+      "REQ-W3-6"
+     ],
+     "required": false
+    },
+    "checked": {
+     "state": "missing",
+     "evidence": [
+      "no check"
+     ],
+     "required": false
+    },
+    "executed": {
+     "state": "missing",
+     "evidence": [
+      "no covering test"
+     ],
+     "required": false
+    },
+    "uncontested": {
+     "state": "pass",
+     "evidence": [],
+     "required": true
+    }
+   },
+   "status": "cleared",
+   "findings": [],
+   "refusals": []
+  },
+  {
+   "id": "TerminalTest.java:startTurnOverTest",
+   "file": "tests/TerminalTest.java",
+   "name": "startTurnOverTest",
+   "tier": "test",
+   "start": 100,
+   "end": 112,
+   "added": 13,
+   "removed": 0,
+   "lines": [
+    {
+     "kind": "+",
+     "old": null,
+     "new": 100,
+     "text": "    @Test"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 101,
+     "text": "    void startTurnOverTest() throws InterruptedException {"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 102,
+     "text": "        AtomicReference<String> result = new AtomicReference<>();"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 103,
+     "text": "        AtomicReference<Thread> worker = new AtomicReference<>();"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 104,
+     "text": "        Thread thread = term.startTurnOver(\"Terschelling\", \"Vlieland\", s -> {"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 105,
+     "text": "            worker.set(Thread.currentThread());"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 106,
+     "text": "            result.set(s);"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 107,
+     "text": "        });"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 108,
+     "text": "        thread.join();"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 109,
+     "text": "        assertEquals(\"All tickets in the database for the route Terschelling -> Vlieland combined are worth 155 euros.\", result.get());"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 110,
+     "text": "        assertSame(thread, worker.get());"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 111,
+     "text": "        assertNotSame(Thread.currentThread(), worker.get());"
+    },
+    {
+     "kind": "+",
+     "old": null,
+     "new": 112,
+     "text": "    }"
+    }
+   ],
+   "reqs": [
+    "REQ-W3-1",
+    "REQ-W3-3",
+    "REQ-W3-6"
+   ],
+   "summary": "Starts the query for Terschelling -> Vlieland, joins the thread, and checks three things: the exact 155-euro message, that the callback ran on the returned thread, and that this thread is not the test thread.",
+   "covered_by": [],
+   "body": [
+    "    @Test",
+    "    void startTurnOverTest() throws InterruptedException {",
+    "        AtomicReference<String> result = new AtomicReference<>();",
+    "        AtomicReference<Thread> worker = new AtomicReference<>();",
+    "        Thread thread = term.startTurnOver(\"Terschelling\", \"Vlieland\", s -> {",
+    "            worker.set(Thread.currentThread());",
+    "            result.set(s);",
+    "        });",
+    "        thread.join();",
+    "        assertEquals(\"All tickets in the database for the route Terschelling -> Vlieland combined are worth 155 euros.\", result.get());",
+    "        assertSame(thread, worker.get());",
+    "        assertNotSame(Thread.currentThread(), worker.get());",
+    "    }"
+   ],
+   "callers": [],
+   "calls": [],
+   "gates": {
+    "traced": {
+     "state": "pass",
+     "evidence": [
+      "REQ-W3-1",
+      "REQ-W3-3",
+      "REQ-W3-6"
+     ],
+     "required": true
+    },
+    "checked": {
+     "state": "pass",
+     "evidence": [
+      "C11",
+      "C12",
+      "C13",
+      "C14"
+     ],
+     "required": true
+    },
+    "executed": {
+     "state": "missing",
+     "evidence": [
+      "no covering test"
+     ],
+     "required": false
+    },
+    "uncontested": {
+     "state": "pass",
+     "evidence": [],
+     "required": true
+    }
+   },
+   "status": "cleared",
+   "findings": [
+    "F6"
+   ],
+   "refusals": []
+  }
+ ],
+ "checks": [
+  {
+   "id": "C1",
+   "claim": "Main calls startTurnOver for option 3 and passes System.out::println as the callback.",
+   "paths": [
+    "src/Main.java"
+   ],
+   "pattern": "terminal\\.startTurnOver\\(departureCity, arrivalCity, System\\.out::println\\)",
+   "expect": "present",
+   "units": [
+    "Main.java:main"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Main.java",
+     "line": 31,
+     "text": "terminal.startTurnOver(departureCity, arrivalCity, System.out::println);"
+    }
+   ]
+  },
+  {
+   "id": "C2",
+   "claim": "Terminal creates a new Thread.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "new Thread\\(",
+   "expect": ">=1",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Terminal.java",
+     "line": 77,
+     "text": "Thread thread = new Thread(() ->"
+    }
+   ]
+  },
+  {
+   "id": "C3",
+   "claim": "The thread is started inside startTurnOver.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "^\\s*thread\\.start\\(\\);",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Terminal.java",
+     "line": 79,
+     "text": "thread.start();"
+    }
+   ]
+  },
+  {
+   "id": "C4",
+   "claim": "Main never joins the worker thread, so the menu does not wait for the result.",
+   "paths": [
+    "src/Main.java"
+   ],
+   "pattern": "\\.join\\(",
+   "expect": "absent",
+   "units": [
+    "Main.java:main"
+   ],
+   "holds": true,
+   "count": 0,
+   "matches": []
+  },
+  {
+   "id": "C5",
+   "claim": "Terminal uses no synchronization or thread-safe collection for its data.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "synchronized|Collections\\.synchronized|CopyOnWriteArrayList|ReentrantLock|ReadWriteLock",
+   "expect": "absent",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 0,
+   "matches": []
+  },
+  {
+   "id": "C6",
+   "claim": "The worker thread has no uncaught-exception handler.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "setUncaughtExceptionHandler",
+   "expect": "absent",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 0,
+   "matches": []
+  },
+  {
+   "id": "C7",
+   "claim": "The new public method signature returns a Thread.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "public Thread startTurnOver\\(String departureCity, String arrivalCity,",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Terminal.java",
+     "line": 75,
+     "text": "public Thread startTurnOver(String departureCity, String arrivalCity,"
+    }
+   ]
+  },
+  {
+   "id": "C8",
+   "claim": "The existing toStringTurnOver method is kept and still public.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "public String toStringTurnOver\\(",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Terminal.java",
+     "line": 61,
+     "text": "public String toStringTurnOver(String departureCity, String arrivalCity) {"
+    }
+   ]
+  },
+  {
+   "id": "C9",
+   "claim": "The thread body reuses toStringTurnOver, so the output format is unchanged.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "onDone\\.accept\\(toStringTurnOver\\(departureCity, arrivalCity\\)\\)",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Terminal.java",
+     "line": 78,
+     "text": "onDone.accept(toStringTurnOver(departureCity, arrivalCity)));"
+    }
+   ]
+  },
+  {
+   "id": "C10",
+   "claim": "startTurnOver has Javadoc with @param and @return tags.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "@return the already started thread",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Terminal.java",
+     "line": 73,
+     "text": "* @return the already started thread, join it to wait for the result."
+    }
+   ]
+  },
+  {
+   "id": "C11",
+   "claim": "There is a test named startTurnOverTest.",
+   "paths": [
+    "tests/TerminalTest.java"
+   ],
+   "pattern": "void startTurnOverTest\\(\\)",
+   "expect": "present",
+   "units": [
+    "TerminalTest.java:startTurnOverTest"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "tests/TerminalTest.java",
+     "line": 101,
+     "text": "void startTurnOverTest() throws InterruptedException {"
+    }
+   ]
+  },
+  {
+   "id": "C12",
+   "claim": "The test checks that the callback did not run on the test thread.",
+   "paths": [
+    "tests/TerminalTest.java"
+   ],
+   "pattern": "assertNotSame\\(Thread\\.currentThread\\(\\), worker\\.get\\(\\)\\)",
+   "expect": "present",
+   "units": [
+    "TerminalTest.java:startTurnOverTest"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "tests/TerminalTest.java",
+     "line": 111,
+     "text": "assertNotSame(Thread.currentThread(), worker.get());"
+    }
+   ]
+  },
+  {
+   "id": "C13",
+   "claim": "The test checks that the callback ran on the returned thread.",
+   "paths": [
+    "tests/TerminalTest.java"
+   ],
+   "pattern": "assertSame\\(thread, worker\\.get\\(\\)\\)",
+   "expect": "present",
+   "units": [
+    "TerminalTest.java:startTurnOverTest"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "tests/TerminalTest.java",
+     "line": 110,
+     "text": "assertSame(thread, worker.get());"
+    }
+   ]
+  },
+  {
+   "id": "C14",
+   "claim": "Only one test calls startTurnOver; no test runs it while tickets are being added.",
+   "paths": [
+    "tests/TerminalTest.java"
+   ],
+   "pattern": "startTurnOver\\(",
+   "expect": "==1",
+   "units": [
+    "TerminalTest.java:startTurnOverTest"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "tests/TerminalTest.java",
+     "line": 104,
+     "text": "Thread thread = term.startTurnOver(\"Terschelling\", \"Vlieland\", s -> {"
+    }
+   ]
+  },
+  {
+   "id": "C15",
+   "claim": "The Terminal Javadoc calls the turnover route 'omnidirectional'.",
+   "paths": [
+    "src/Terminal.java"
+   ],
+   "pattern": "omnidirectional",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Terminal.java",
+     "line": 84,
+     "text": "* Calculates the turnover for a specific route (omnidirectional)."
+    }
+   ]
+  },
+  {
+   "id": "C16",
+   "claim": "The issue says a route is one-way.",
+   "paths": [
+    "@issue"
+   ],
+   "pattern": "uni-directional",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "@issue",
+     "line": 9,
+     "text": "uni-directional, so Vlieland \u2013 Texel is a different route!) is calculated and shown on the screen."
+    }
+   ]
+  },
+  {
+   "id": "C17",
+   "claim": "The issue requires Option 3 to run in a thread.",
+   "paths": [
+    "@issue"
+   ],
+   "pattern": "Please ensure that Option 3 is executed in a thread",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver",
+    "Main.java:main"
+   ],
+   "holds": false,
+   "count": 0,
+   "matches": []
+  },
+  {
+   "id": "C18",
+   "claim": "The issue requires tickets to stay available while the query runs.",
+   "paths": [
+    "@issue"
+   ],
+   "pattern": "Tickets need to stay available while running the Option 3 query",
+   "expect": "present",
+   "units": [
+    "Terminal.java:startTurnOver",
+    "Main.java:main"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "@issue",
+     "line": 17,
+     "text": "large during the tourist season. Tickets need to stay available while running the Option 3 query."
+    }
+   ]
+  },
+  {
+   "id": "C19",
+   "claim": "The menu still has an option 5.",
+   "paths": [
+    "src/Main.java"
+   ],
+   "pattern": "case \"5\"",
+   "expect": "present",
+   "units": [
+    "Main.java:main"
+   ],
+   "holds": true,
+   "count": 1,
+   "matches": [
+    {
+     "file": "src/Main.java",
+     "line": 41,
+     "text": "case \"5\" -> {"
+    }
+   ]
+  }
+ ],
+ "tests": {
+  "startTurnOverTest": {
+   "status": "passed",
+   "without_fix": "does not compile",
+   "proves_fix": true,
+   "why": "passes with the change; without it the test does not compile, so it tests new code"
+  }
+ },
+ "findings": [
+  {
+   "id": "F1",
+   "unit": "Terminal.java:startTurnOver",
+   "severity": "medium",
+   "title": "The worker thread reads ticket data with no synchronization",
+   "text": "The query thread goes through the ticket list while the main thread can keep changing it through the other menu options, and nothing in Terminal synchronizes access. The issue's goal is for tickets to stay available while the query runs. If a ticket is added during a long query, the result can be a ConcurrentModificationException in the worker or a total that is out of date or inconsistent. With the current small input file the race window is tiny, so it will not show up in practice yet.",
+   "checks": [
+    "C2",
+    "C5",
+    "C18"
+   ],
+   "model_confidence": "high",
+   "confidence": {
+    "basis": "facts backed by C2, C5, C18",
+    "model": "high",
+    "backed": true
+   }
+  },
+  {
+   "id": "F2",
+   "unit": "Main.java:main",
+   "severity": "low",
+   "title": "The result is printed whenever it is ready and can land in the middle of the next prompt",
+   "text": "Main does not join the thread, so the menu is printed again right away. The turnover line is printed from the worker thread whenever it finishes, which can be in the middle of the menu or another option's input prompts. This is the expected cost of keeping the terminal responsive, but the user sees the result in an unpredictable place. If option 5 is chosen while the query runs, the thread is not a daemon thread, so the result is still printed before the JVM exits.",
+   "checks": [
+    "C1",
+    "C4",
+    "C19"
+   ],
+   "model_confidence": "high",
+   "confidence": {
+    "basis": "facts backed by C1, C4, C19",
+    "model": "high",
+    "backed": true
+   }
+  },
+  {
+   "id": "F3",
+   "unit": "Terminal.java:startTurnOver",
+   "severity": "low",
+   "title": "Errors in the worker thread are not handled",
+   "text": "If the calculation or the callback throws (for example the ConcurrentModificationException from F1), the default handler prints a stack trace on stderr and the user gets no Option 3 message at all.",
+   "checks": [
+    "C6"
+   ],
+   "model_confidence": "medium",
+   "confidence": {
+    "basis": "facts backed by C6",
+    "model": "medium",
+    "backed": true
+   }
+  },
+  {
+   "id": "F4",
+   "unit": "Terminal.java:startTurnOver",
+   "severity": "info",
+   "title": "The output format is kept by reusing toStringTurnOver",
+   "text": "The thread body calls the existing toStringTurnOver, and the new test asserts the exact 155-euro message for Terschelling -> Vlieland. That test also checks that the work ran on a different thread from the caller. The old public method is unchanged.",
+   "checks": [
+    "C8",
+    "C9",
+    "C11",
+    "C12",
+    "C13"
+   ],
+   "model_confidence": "high",
+   "confidence": {
+    "basis": "facts backed by C8, C9, C11, C12, C13",
+    "model": "high",
+    "backed": true
+   }
+  },
+  {
+   "id": "F5",
+   "unit": "Terminal.java:startTurnOver",
+   "severity": "info",
+   "title": "Existing Javadoc calls the route 'omnidirectional', but the issue says routes are one-way",
+   "text": "The calculateTurnOver Javadoc was already there before this change and says 'omnidirectional', which contradicts the issue. The code behaviour is still tested one-way (Terschelling -> Vlieland). The comment is misleading but was not introduced by this change.",
+   "checks": [
+    "C15",
+    "C16"
+   ],
+   "model_confidence": "medium",
+   "confidence": {
+    "basis": "facts backed by C15, C16",
+    "model": "medium",
+    "backed": true
+   }
+  },
+  {
+   "id": "F6",
+   "unit": "TerminalTest.java:startTurnOverTest",
+   "severity": "low",
+   "title": "Nothing tests the concurrent case or the Main wiring",
+   "text": "The only test runs the thread with nothing else happening at the same time. No test sells or adds tickets during the query, which is the scenario the requirement is about. No test drives option 3 through Main either.",
+   "checks": [
+    "C14",
+    "C1"
+   ],
+   "model_confidence": "high",
+   "confidence": {
+    "basis": "facts backed by C14, C1",
+    "model": "high",
+    "backed": true
+   }
+  }
+ ],
+ "proposed_tests": [
+  {
+   "id": "P1",
+   "for": "F1",
+   "text": "Load a large ticket list and start startTurnOver. While it runs, add tickets from the test thread. Join the thread, then assert that no exception reached an uncaught-exception handler and that the reported total equals either the before or after total for that route."
+  },
+  {
+   "id": "P2",
+   "for": "F2",
+   "text": "Run Main with System.in set to '3\\nTerschelling\\nVlieland\\n5\\n' and System.out captured. After the program ends, assert that the output contains the 155-euro line exactly once."
+  },
+  {
+   "id": "P3",
+   "for": "F3",
+   "text": "Call startTurnOver with a callback that throws. Assert that the failure is reported in a defined way, such as a user-facing message or a handler being called, rather than lost."
+  }
+ ],
+ "refusals": [
+  {
+   "id": "R1",
+   "category": "concurrency",
+   "question": "How consistent should the Option 3 total be when tickets are sold while the query is running?",
+   "why": "This decides whether ticket sales may be blocked, or the data copied, while the query runs. That is a trade-off between data correctness and ticket availability, which the issue names as the goal but does not resolve.",
+   "agent_choice": "No synchronization. The worker reads the live list while sales continue.",
+   "options": [
+    "Copy the list when the query starts and count the copy",
+    "Make ticket access thread-safe (synchronized or a concurrent collection)",
+    "Accept the race as-is for this exam scope"
+   ],
+   "evidence": [
+    "F1",
+    "C5",
+    "C18"
+   ],
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "owner": {
+    "name": "Leena Koskinen",
+    "role": "Platform engineer, owns threading and shared state"
+   }
+  },
+  {
+   "id": "R2",
+   "category": "requirement-ambiguity",
+   "question": "Should the menu wait for the Option 3 result or come back right away?",
+   "why": "'Executed in a thread' is met either way. 'Tickets stay available' points to not waiting, but then the output order is unpredictable. The issue does not say which matters more.",
+   "agent_choice": "Do not wait. The result is printed whenever the thread finishes.",
+   "options": [
+    "Keep the current behaviour (async, print when done)",
+    "Join the thread before showing the menu again",
+    "Queue the result and print it at the next menu redraw"
+   ],
+   "evidence": [
+    "F2",
+    "C4",
+    "C17"
+   ],
+   "units": [
+    "Main.java:main"
+   ],
+   "owner": {
+    "name": "Jussi Heikkinen",
+    "role": "Product owner, Wadden Islands Ferry Company"
+   }
+  },
+  {
+   "id": "R3",
+   "category": "public-contract",
+   "question": "Is a new public method that returns a raw started Thread and takes a Consumer the API you want on Terminal?",
+   "why": "This adds a public contract that callers and tests will depend on. Other shapes like Future or CompletableFuture would change how errors and waiting work.",
+   "agent_choice": "public Thread startTurnOver(String, String, Consumer<String>), keeping toStringTurnOver as it was.",
+   "options": [
+    "Keep the Thread + Consumer API",
+    "Return a CompletableFuture<String> instead",
+    "Use an ExecutorService owned by Terminal and return a Future"
+   ],
+   "evidence": [
+    "C7",
+    "C8",
+    "F3"
+   ],
+   "units": [
+    "Terminal.java:startTurnOver"
+   ],
+   "owner": {
+    "name": "Mikko Laine",
+    "role": "Owner of the terminal interface and its output"
+   }
+  }
+ ],
+ "summary": {
+  "units": 5,
+  "cleared": 3,
+  "held": 0,
+  "routed": 2,
+  "lines_changed": 34,
+  "lines_to_read": 17,
+  "lines_routed": 17,
+  "checks": 19,
+  "checks_hold": 18,
+  "tests": 1,
+  "tests_run": 1,
+  "tests_passed": 1,
+  "findings": 6,
+  "refusals": 3
+ },
+ "id": "ce0dcfe3e3c1"
+}

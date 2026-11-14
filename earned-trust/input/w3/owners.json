@@ -1,0 +1,25 @@
+{
+  "note": "Synthetic people. Every category has exactly one named owner.",
+  "routing": {
+    "requirement-ambiguity": {
+      "name": "Jussi Heikkinen",
+      "role": "Product owner, Wadden Islands Ferry Company"
+    },
+    "concurrency": {
+      "name": "Leena Koskinen",
+      "role": "Platform engineer, owns threading and shared state"
+    },
+    "public-contract": {
+      "name": "Mikko Laine",
+      "role": "Owner of the terminal interface and its output"
+    },
+    "security": {
+      "name": "Leena Koskinen",
+      "role": "Security champion"
+    }
+  },
+  "approver": {
+    "name": "Sara Nieminen",
+    "role": "Change approver, accountable for the merge"
+  }
+}
