@@ -56,7 +56,7 @@ node dist/cli.js review --repo ../sample-repo --base origin/HEAD --head origin/j
 Sign off as the accountable human:
 
 ```sh
-node dist/cli.js decide --report reports/REQ-2234 --by "Ada Example" reject --note "C3 contradicted: early return untouched"
+node dist/cli.js decide --report reports/REQ-2234 --by "Ada Example" reject --note "C7/C8 contradicted: tests pass on base, regression not addressed"
 node dist/cli.js decide --report reports/REQ-2297 --by "Ada Example" accept --answer C5="ran snapshot tests locally"
 node dist/cli.js log
 ```

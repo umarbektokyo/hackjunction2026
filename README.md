@@ -100,7 +100,7 @@ Still to decide: what "nobility" means for the team, originality or real-world u
 - **Deliverables:** concept card (recommendation, principles, trade-offs, limits), live walkthrough showing where trust comes from, lessons log, demo video or presentation.
 - **Judging:** clarity 30%, practicality 25%, measurement 25% (reverts and incidents don't rise as review time falls; AI findings accepted; time to merge; share routed to humans), evidence 20% (a named human can accept without a full read; what the AI found, what it refused to decide, and why).
 - **Prizes:** €2,000, €1,000, €500. Only 25 preliminary submissions, the fewest of the software challenges.
-- Our entry: `earned-trust/` — claims → evidence → verdict review (`cev`). Picked because it needs no partner credentials, and the agent branches contain real over-promises to find (e.g. 2234 documents and tests analyzer behaviour that the code never enables).
+- Our entry: `earned-trust/` — claims → evidence → verdict review (`cev`). Picked because it needs no partner credentials, and the agent branches contain real over-promises to find (e.g. branch 2234 adds tests and a README section for analyzer behaviour the base branch already had; its only code change is a duplicate-key crash guard).
 
 ## Other prize pools (Agentic AI track)
 
