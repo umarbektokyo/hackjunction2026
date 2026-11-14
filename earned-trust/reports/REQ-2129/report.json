@@ -1,0 +1,1146 @@
+{
+  "tool": "cev",
+  "version": "0.1.0",
+  "generatedAt": "2026-11-14T03:34:11.438Z",
+  "requirementId": "REQ-2129",
+  "requirementPath": "requirements/REQ-2129.md",
+  "facts": {
+    "repo": "/tmp/claude-1000/-home-ayo-Projects-hackjunction2026/155e29e0-f59c-47aa-bce2-3bc17a76b757/scratchpad/tieto/repo",
+    "base": "origin/HEAD",
+    "head": "origin/ju26-issue-2129",
+    "mergeBase": "32258fdbee4bcd653c79f51b4376b5103c6f4d27",
+    "headSha": "083afd994c1c9a994cb2cd5aa0b6ad805a621457",
+    "commitMessage": "Agentic implementation of #2129 Feature Request: Allow generation of Formatter for a type in a referenced assembly",
+    "files": [
+      {
+        "path": "README.md",
+        "status": "M",
+        "cls": "docs",
+        "additions": 52,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "doc/analyzers/MsgPack019.md",
+        "status": "A",
+        "cls": "docs",
+        "additions": 26,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "doc/analyzers/MsgPack020.md",
+        "status": "A",
+        "cls": "docs",
+        "additions": 23,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "doc/analyzers/MsgPack021.md",
+        "status": "A",
+        "cls": "docs",
+        "additions": 23,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "doc/analyzers/MsgPack022.md",
+        "status": "A",
+        "cls": "docs",
+        "additions": 31,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "doc/analyzers/index.md",
+        "status": "M",
+        "cls": "docs",
+        "additions": 4,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.Annotations/Attributes.cs",
+        "status": "M",
+        "cls": "source",
+        "additions": 36,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/AnalyzerReleases.Unshipped.md",
+        "status": "M",
+        "cls": "docs",
+        "additions": 4,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/Analyzers/MsgPack00xMessagePackAnalyzer.cs",
+        "status": "M",
+        "cls": "source",
+        "additions": 45,
+        "deletions": 1,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+        "status": "A",
+        "cls": "source",
+        "additions": 300,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterRequest.cs",
+        "status": "A",
+        "cls": "source",
+        "additions": 13,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/CodeAnalysis/ObjectSerializationInfo.cs",
+        "status": "M",
+        "cls": "source",
+        "additions": 7,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/GeneratorUtilities.cs",
+        "status": "M",
+        "cls": "source",
+        "additions": 3,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+        "status": "M",
+        "cls": "source",
+        "additions": 36,
+        "deletions": 3,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/Transforms/FormatterTemplate.cs",
+        "status": "M",
+        "cls": "source",
+        "additions": 3,
+        "deletions": 1,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/Transforms/FormatterTemplate.tt",
+        "status": "M",
+        "cls": "template",
+        "additions": 1,
+        "deletions": 1,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/Transforms/StringKey/StringKeyFormatterTemplate.cs",
+        "status": "M",
+        "cls": "source",
+        "additions": 3,
+        "deletions": 1,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/Transforms/StringKey/StringKeyFormatterTemplate.tt",
+        "status": "M",
+        "cls": "template",
+        "additions": 1,
+        "deletions": 1,
+        "patch": ""
+      },
+      {
+        "path": "src/MessagePack.SourceGenerator/Utils/Constants.cs",
+        "status": "M",
+        "cls": "source",
+        "additions": 2,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExecutionTests/GeneratedFormatterForExternalTypes.cs",
+        "status": "A",
+        "cls": "test",
+        "additions": 50,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExecutionTests/GeneratedFormatterForExternalTypesTests.cs",
+        "status": "A",
+        "cls": "test",
+        "additions": 95,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExecutionTests/MessagePack.SourceGenerator.ExecutionTests.csproj",
+        "status": "M",
+        "cls": "build",
+        "additions": 5,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExternalTypes/ExternalPerson.cs",
+        "status": "A",
+        "cls": "test",
+        "additions": 15,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExternalTypes/ExternalPoint.cs",
+        "status": "A",
+        "cls": "test",
+        "additions": 12,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExternalTypes/ExternalWidget.cs",
+        "status": "A",
+        "cls": "test",
+        "additions": 15,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.ExternalTypes/MessagePack.SourceGenerator.ExternalTypes.csproj",
+        "status": "A",
+        "cls": "build",
+        "additions": 17,
+        "deletions": 0,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.MapModeExecutionTests/MessagePack.SourceGenerator.MapModeExecutionTests.csproj",
+        "status": "M",
+        "cls": "build",
+        "additions": 2,
+        "deletions": 1,
+        "patch": ""
+      },
+      {
+        "path": "tests/MessagePack.SourceGenerator.Tests/GeneratedMessagePackFormatterTests.cs",
+        "status": "A",
+        "cls": "test",
+        "additions": 210,
+        "deletions": 0,
+        "patch": ""
+      }
+    ],
+    "counts": {
+      "docs": {
+        "files": 7,
+        "additions": 163,
+        "deletions": 0
+      },
+      "source": {
+        "files": 10,
+        "additions": 448,
+        "deletions": 6
+      },
+      "template": {
+        "files": 2,
+        "additions": 2,
+        "deletions": 2
+      },
+      "test": {
+        "files": 6,
+        "additions": 397,
+        "deletions": 0
+      },
+      "build": {
+        "files": 3,
+        "additions": 24,
+        "deletions": 1
+      }
+    },
+    "riskTier": "high",
+    "riskReasons": [
+      "456 changed source/template lines",
+      "touches public API surface (annotations/attributes)",
+      "changes code-generation templates (every consumer is affected)"
+    ],
+    "unrequested": [],
+    "hasTests": true,
+    "touchesPublicApi": true
+  },
+  "model": "sonnet",
+  "summary": "Adds a [GeneratedMessagePackFormatter] attribute (with optional SurrogateType) so the source generator fills in a user-declared partial IMessagePackFormatter<T> class for a type from another assembly, using contractless mode or surrogate-declared keys. Adds four analyzer diagnostics (MsgPack019-022), modifies the two formatter templates to emit \"partial class\", excludes these formatters from hand-written-formatter registration, and adds docs and tests.",
+  "requirementItems": [
+    {
+      "id": "F1",
+      "text": "A new attribute, e.g. `[GeneratedMessagePackFormatter(typeof(External))]`, on a partial class implementing `IMessagePackFormatter<T>` makes the generator fill in the implementation."
+    },
+    {
+      "id": "F2",
+      "text": "Keys for the external type's members come from a **surrogate type** carrying the MessagePack attributes (`SurrogateType = typeof(...)`), matched to the external type's properties by name; or, when no surrogate is given, from contractless (property-name) mode. The surrogate is generator input only and is not used at run time."
+    },
+    {
+      "id": "F3",
+      "text": "Analyzers flag a surrogate property that has no matching property on the external type, and a missing key on the surrogate."
+    },
+    {
+      "id": "F4",
+      "text": "Copying MessagePack attribute definitions into Project A is explicitly rejected (reflection resolvers would not recognise duplicates)."
+    },
+    {
+      "id": "F5",
+      "text": "The generated formatter is registered in the project's generated resolver like any other formatter."
+    },
+    {
+      "id": "N1",
+      "text": "Only public members are serialized (confirmed with the requester)."
+    },
+    {
+      "id": "N2",
+      "text": "Existing generation output for owned types is unchanged (snapshot tests pass)."
+    },
+    {
+      "id": "N3",
+      "text": "Documentation for the new attribute and new analyzer IDs."
+    }
+  ],
+  "claims": [
+    {
+      "id": "C1",
+      "statement": "A partial class marked [GeneratedMessagePackFormatter] that implements IMessagePackFormatter<T> for a class or struct T gets a generated Serialize/Deserialize body from the generator, via ForAttributeWithMetadataName and GeneratedFormatterCollector.Collect.",
+      "kind": "behaviour",
+      "files": [
+        "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+        "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs"
+      ],
+      "requirementRefs": [
+        "F1"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C2",
+      "statement": "The attribute has no constructor taking typeof(External); the external type comes only from the IMessagePackFormatter<T> interface, so the usage form in F1, [GeneratedMessagePackFormatter(typeof(External))], does not compile.",
+      "kind": "behaviour",
+      "files": [
+        "src/MessagePack.Annotations/Attributes.cs"
+      ],
+      "requirementRefs": [
+        "F1"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C3",
+      "statement": "With no surrogate, every public read-write instance property and field (including inherited ones) is serialized under its name as a string key, sorted ordinally. Read-only members are skipped.",
+      "kind": "behaviour",
+      "files": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs"
+      ],
+      "requirementRefs": [
+        "F2",
+        "N1"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C4",
+      "statement": "With SurrogateType set, keys and membership come from the surrogate's [Key]/[IgnoreMember] annotations, matched to the target's public read-write members by name and identical type. The surrogate is never instantiated at run time.",
+      "kind": "behaviour",
+      "files": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs"
+      ],
+      "requirementRefs": [
+        "F2"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C5",
+      "statement": "Diagnostics are reported for a surrogate member with no matching target member (MsgPack022, also on a type mismatch) and for a surrogate member with no [Key] (reuses MsgPack003 MemberNeedsKey). They are emitted from the generator pipeline via RegisterSourceOutput, not from a DiagnosticAnalyzer, even though descriptors live in the analyzer class.",
+      "kind": "behaviour",
+      "files": [
+        "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+        "src/MessagePack.SourceGenerator/Analyzers/MsgPack00xMessagePackAnalyzer.cs"
+      ],
+      "requirementRefs": [
+        "F3"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C6",
+      "statement": "Generated formatters are registered in GeneratedMessagePackResolver as ObjectSerializationInfo, and are excluded from the hand-written custom-formatter discovery so they are not registered twice.",
+      "kind": "behaviour",
+      "files": [
+        "src/MessagePack.SourceGenerator/GeneratorUtilities.cs",
+        "src/MessagePack.SourceGenerator/MessagePackGenerator.cs"
+      ],
+      "requirementRefs": [
+        "F5"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C7",
+      "statement": "Both formatter templates (.tt and generated .cs) now emit 'partial class' instead of 'internal sealed class' when Info.IsUserDeclaredFormatter is true, and the output for all other types is byte-identical to before.",
+      "kind": "non-change",
+      "files": [
+        "src/MessagePack.SourceGenerator/Transforms/FormatterTemplate.tt",
+        "src/MessagePack.SourceGenerator/Transforms/StringKey/StringKeyFormatterTemplate.tt",
+        "src/MessagePack.SourceGenerator/Transforms/FormatterTemplate.cs",
+        "src/MessagePack.SourceGenerator/Transforms/StringKey/StringKeyFormatterTemplate.cs"
+      ],
+      "requirementRefs": [
+        "N2"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C8",
+      "statement": "Four new error diagnostics MsgPack019-022 (not partial; does not implement exactly one IMessagePackFormatter<T>; data type unsupported; surrogate member mismatch) are added, with a release-tracking entry, an index entry and a doc page each.",
+      "kind": "docs",
+      "files": [
+        "src/MessagePack.SourceGenerator/AnalyzerReleases.Unshipped.md",
+        "doc/analyzers/index.md",
+        "doc/analyzers/MsgPack019.md",
+        "doc/analyzers/MsgPack020.md",
+        "doc/analyzers/MsgPack021.md",
+        "doc/analyzers/MsgPack022.md"
+      ],
+      "requirementRefs": [
+        "N3",
+        "F3"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C9",
+      "statement": "The README promises that deserialization uses an accessible parameterless constructor, that types with only parameterized constructors are unsupported, and that nested member types resolve through the other resolvers. The code reports NoDeserializingConstructor (MsgPack007 descriptor) for a class with no parameterless constructor.",
+      "kind": "docs",
+      "files": [
+        "README.md",
+        "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs"
+      ],
+      "requirementRefs": [
+        "N3"
+      ],
+      "source": "docs"
+    },
+    {
+      "id": "C10",
+      "statement": "The new tests prove contractless and surrogate formatting works end to end across an assembly that does not reference MessagePack: round-trip, string keys, an array of 8 slots for surrogate keys 3 and 7, and registration in the generated resolver.",
+      "kind": "tests",
+      "files": [
+        "tests/MessagePack.SourceGenerator.ExecutionTests/GeneratedFormatterForExternalTypesTests.cs",
+        "tests/MessagePack.SourceGenerator.ExternalTypes/MessagePack.SourceGenerator.ExternalTypes.csproj"
+      ],
+      "requirementRefs": [
+        "F1",
+        "F2",
+        "F5",
+        "N1"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C11",
+      "statement": "The diagnostic tests cover MsgPack019, 020, 021, 022 (missing member and type mismatch) and MsgPack005 (mixed keys). No test covers a missing [Key] on a surrogate member, the NoDeserializingConstructor path, or a struct or inherited member in surrogate mode.",
+      "kind": "tests",
+      "files": [
+        "tests/MessagePack.SourceGenerator.Tests/GeneratedMessagePackFormatterTests.cs"
+      ],
+      "requirementRefs": [
+        "F3"
+      ],
+      "source": "diff"
+    },
+    {
+      "id": "C12",
+      "statement": "Scope: the change adds behaviour no requirement item asks for. These are the type-equality requirement on surrogate members, rejection of generic/abstract types, a cast for explicit IMessagePackSerializationCallbackReceiver implementations, and reuse of MsgPack005/007/003/004-style diagnostics (KeysMustBeUnique, DoNotMixStringAndIntKeys).",
+      "kind": "scope",
+      "files": [
+        "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs"
+      ],
+      "requirementRefs": [],
+      "source": "diff"
+    },
+    {
+      "id": "C13",
+      "statement": "Scope: the MapModeExecutionTests project now excludes GeneratedFormatterForExternalTypes*.cs from its compile glob, so the new feature is not exercised in force-map mode.",
+      "kind": "scope",
+      "files": [
+        "tests/MessagePack.SourceGenerator.MapModeExecutionTests/MessagePack.SourceGenerator.MapModeExecutionTests.csproj"
+      ],
+      "requirementRefs": [],
+      "source": "diff"
+    },
+    {
+      "id": "C14",
+      "statement": "Existing owned-type generation, [MessagePackObject] handling and the existing snapshot tests are unaffected by the new pipeline inputs, the extra .Combine nesting and the new IsUserDeclaredFormatter equality member.",
+      "kind": "non-change",
+      "files": [
+        "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+        "src/MessagePack.SourceGenerator/CodeAnalysis/ObjectSerializationInfo.cs"
+      ],
+      "requirementRefs": [
+        "N2"
+      ],
+      "source": "inferred"
+    }
+  ],
+  "verdicts": [
+    {
+      "claimId": "C1",
+      "verdict": "supported",
+      "confidence": "medium",
+      "basis": "Direct code reading of the generator pipeline, the collector and the emit path. Nothing was executed, and I found no test that asserts the generated Serialize/Deserialize text.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+          "lineStart": 28,
+          "lineEnd": 35,
+          "note": "ForAttributeWithMetadataName on MessagePack.GeneratedMessagePackFormatterAttribute for class declarations. It builds a GeneratedFormatterRequest(formatter symbol, SurrogateType)."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+          "lineStart": 65,
+          "lineEnd": 71,
+          "note": "Each request calls GeneratedFormatterCollector.Collect, and the resulting FullModel is added to modelPerType."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 34,
+          "lineEnd": 125,
+          "note": "Collect requires a partial class and exactly one IMessagePackFormatter<T> interface. T must be a non-generic, non-abstract class or struct. It builds an ObjectSerializationInfo with IsUserDeclaredFormatter=true and the Formatter set to the user's class, and returns it in FullModel.ObjectInfos."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+          "lineStart": 108,
+          "note": "ObjectInfos are split into per-type models, which are then emitted."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.Emit.cs",
+          "lineStart": 43,
+          "lineEnd": 47,
+          "note": "Each ObjectSerializationInfo is run through the int-key or string-key formatter template."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Transforms/FormatterTemplate.tt",
+          "lineStart": 14,
+          "lineEnd": 23,
+          "note": "When IsUserDeclaredFormatter is set, the template emits `partial class <Formatter> : IMessagePackFormatter<T>` with a generated Serialize method, so it merges with the user's partial class. The string-key template does the same."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.Annotations/Attributes.cs",
+          "lineStart": 165,
+          "lineEnd": 176,
+          "note": "The attribute class GeneratedMessagePackFormatterAttribute exists with SurrogateType, and the constants in Constants.cs match it."
+        }
+      ],
+      "reasoning": "I followed the path from attribute discovery through Collect, the model split and emit to the templates. Every step exists and is wired together. The collector returns a model only for a partial class implementing a single IMessagePackFormatter<T> with a class or struct T, and the templates turn it into the partial class body. I did not read the full Deserialize template or confirm that the output compiles. Collect returns null for abstract, generic and inaccessible T, so \"class or struct T\" holds only for the supported subset. A class T also needs an accessible parameterless constructor.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C2",
+      "verdict": "supported",
+      "confidence": "high",
+      "basis": "Direct code reading of the whole attribute class, plus a repo-wide grep for other definitions or constructors.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.Annotations/Attributes.cs",
+          "lineStart": 166,
+          "lineEnd": 178,
+          "note": "GeneratedMessagePackFormatterAttribute declares no constructor, only the SurrogateType property. C# gives it an implicit parameterless constructor, so [GeneratedMessagePackFormatter(typeof(External))] has no matching constructor and gives CS1729. The external type is not a parameter."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.Annotations/Attributes.cs",
+          "lineStart": 160,
+          "lineEnd": 163,
+          "note": "The XML doc example uses [GeneratedMessagePackFormatter] with no arguments, and the type comes from IMessagePackFormatter<ProjectA.MyObject>."
+        },
+        {
+          "kind": "deterministic",
+          "note": "A repo-wide grep for 'class GeneratedMessagePackFormatterAttribute' finds only this definition. A grep for 'GeneratedMessagePackFormatterAttribute(' and 'GeneratedMessagePackFormatter(typeof' finds nothing."
+        }
+      ],
+      "reasoning": "The class has no explicit constructors, so only the implicit parameterless one exists. A positional typeof argument therefore cannot bind to a constructor, and typeof(External) cannot be a named argument either. The external type can only come from the IMessagePackFormatter<T> implemented by the annotated class, as the doc comment says. The form F1 suggests (\"e.g.\") does not compile. The change's own usage deliberately differs from F1. I did not compile it, so this rests on C# rules and code reading, not execution.",
+      "severity": "minor"
+    },
+    {
+      "claimId": "C3",
+      "verdict": "supported",
+      "confidence": "medium",
+      "basis": "Direct code reading of the whole contractless path in GeneratedFormatterCollector. No tests or execution were used. I did not check the emitter downstream.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 84,
+          "lineEnd": 88,
+          "note": "When surrogate is null, members come from CreateContractlessMembers and isIntKey is false."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 131,
+          "lineEnd": 140,
+          "note": "Members come from GetInstanceMembers filtered by IsPublicReadWrite, sorted with OrderBy(Name, StringComparer.Ordinal). Each member gets StringKey = Name, so it is serialized under its name."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 251,
+          "lineEnd": 276,
+          "note": "GetInstanceMembers walks BaseType up to, but not including, object, so inherited members are included. It skips static members, implicitly declared members and indexers."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 279,
+          "lineEnd": 285,
+          "note": "IsPublicReadWrite requires a property to be public with a public getter and a public setter. It requires a field to be public, not readonly and not const. Read-only members are therefore skipped."
+        }
+      ],
+      "reasoning": "The core claim matches the code: public read-write members, own and inherited, are keyed by name and sorted ordinally. Read-only members are skipped. There are two edge-case deviations. First, GetInstanceMembers keeps only the first member of each name, from the most derived type. A non-public derived member that hides a public base member of the same name therefore removes the base one. Second, a derived override that declares only one accessor of a base read-write property is seen as read-only and skipped. Neither contradicts the claim in the normal case. I did not check whether the emitter re-sorts or reorders members after this point.",
+      "severity": "minor"
+    },
+    {
+      "claimId": "C4",
+      "verdict": "supported",
+      "confidence": "medium",
+      "basis": "Direct code reading of CreateSurrogateMembers and a grep for every use of the surrogate in src. No tests run or read.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 161,
+          "lineEnd": 213,
+          "note": "Iterates surrogate members only. [IgnoreMember] skips a member. The [Key] value (int or string) becomes the key. A member with no key reports MemberNeedsKey. The target is the same-named member of the formatted type, and it must be public read-write with an identical type (SymbolEqualityComparer), else SurrogateMemberNotFound. Target members the surrogate does not list are never added."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+          "lineStart": 34,
+          "lineEnd": 72,
+          "note": "The surrogate INamedTypeSymbol is read from the attribute's NamedArguments and passed only to GeneratedFormatterCollector.Collect, which is compile-time only."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.Annotations/Attributes.cs",
+          "lineStart": 153,
+          "lineEnd": 176,
+          "note": "Documents the surrogate as never instantiated at run time."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 105,
+          "lineEnd": 120,
+          "note": "The ObjectSerializationInfo is built from the target type and the members only. It carries no reference to the surrogate, so the emitted code has none."
+        }
+      ],
+      "reasoning": "Keys and membership come from the surrogate's [Key] and [IgnoreMember] attributes, and the match is by name plus identical type to a public read-write target member. I grepped src for 'surrogate' and found it used only in the collector, the generator's input plumbing, the analyzer descriptor and the attribute docs. Nothing in the model or emitter references it, so the generated formatter has no run-time use of the surrogate. I did not read the emitter templates (.tt) in full. One nuance: GetInstanceMembers(surrogate) also returns non-public and inherited surrogate members. A private surrogate field with no [Key] and no [IgnoreMember] would therefore fail with MemberNeedsKey, rather than being silently excluded. This does not contradict the claim.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C5",
+      "verdict": "supported",
+      "confidence": "high",
+      "basis": "Direct reading of the whole path: the generator pipeline, the collector method and the descriptor declarations. No execution or tests were run.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 169,
+          "lineEnd": 179,
+          "note": "A surrogate member without an int or string [Key] reports MsgPack00xMessagePackAnalyzer.MemberNeedsKey (MsgPack003, reused)."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 189,
+          "lineEnd": 198,
+          "note": "A missing target, a non-public-read-write target, or a member type mismatch each report SurrogateMemberNotFound (MsgPack022)."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+          "lineStart": 116,
+          "lineEnd": 133,
+          "note": "The generatedFormatterDiagnostics SelectMany calls GeneratedFormatterCollector.Collect with diagnostics.Add. RegisterSourceOutput then calls context.ReportDiagnostic on each result."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Analyzers/MsgPack00xMessagePackAnalyzer.cs",
+          "lineStart": 345,
+          "lineEnd": 385,
+          "note": "The SurrogateMemberNotFound descriptor is declared in the analyzer class and listed in SupportedDiagnostics. The grep found no analyzer code that reports it."
+        }
+      ],
+      "reasoning": "Both diagnostics are created only in GeneratedFormatterCollector. Its Action<Diagnostic> callback is wired in the generator's SelectMany, and RegisterSourceOutput reports the results. A grep for SurrogateMemberNotFound and MemberNeedsKey found no use in the DiagnosticAnalyzer beyond the descriptor declarations and the SupportedDiagnostics list. MemberNeedsKey is the pre-existing MsgPack003 descriptor, so it is reused. The type-mismatch case is covered by the same condition as the missing-target case.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C6",
+      "verdict": "supported",
+      "confidence": "medium",
+      "basis": "Direct code reading of the full path: collector → model → resolver emit, plus the discovery filter. No execution and no test run.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 104,
+          "lineEnd": 125,
+          "note": "Builds an ObjectSerializationInfo with Formatter set to the user's partial class and IsUserDeclaredFormatter=true. It is returned in FullModel.ObjectInfos."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+          "lineStart": 28,
+          "lineEnd": 75,
+          "note": "Models from GeneratedFormatterCollector.Collect are added to modelPerType, which feeds the resolver model."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.Emit.cs",
+          "lineStart": 71,
+          "lineEnd": 79,
+          "note": "GenerateResolver puts model.ObjectInfos into registerInfos, which feeds ResolverTemplate. This registers the generated formatter in the generated resolver. Line 43-49 emits the partial formatter body from the same ObjectInfos."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/GeneratorUtilities.cs",
+          "lineStart": 35,
+          "lineEnd": 43,
+          "note": "The custom-formatter discovery transform returns null for any class carrying MessagePack.GeneratedMessagePackFormatterAttribute, so it never enters CustomFormatterInfos. Hand-written discovery does not register it a second time."
+        }
+      ],
+      "reasoning": "Both halves of the claim are implemented. First, generated formatters become ObjectSerializationInfo and reach the resolver through ObjectInfos. Second, the attribute check in the discovery predicate excludes them from hand-written discovery. The attribute name comparison uses the same namespace and name constants as ForAttributeWithMetadataName, so the two sides match. Caveats: I did not run tests or check a snapshot of the generated resolver. A formatter that fails validation returns null, so it is neither registered nor generated, which is consistent with the claim. I found no other path that registers it twice.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C7",
+      "verdict": "supported",
+      "confidence": "high",
+      "basis": "Direct code reading of the diff hunks and the property definition. No execution or snapshot test run.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Transforms/FormatterTemplate.cs",
+          "lineStart": 33,
+          "lineEnd": 36,
+          "note": "Writes \"\\t\", then the ternary \"partial class\" / \"internal sealed class\", then \" \", then the name. When the flag is false this is the same text as the old \"\\tinternal sealed class \"."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Transforms/StringKey/StringKeyFormatterTemplate.cs",
+          "lineStart": 37,
+          "lineEnd": 40,
+          "note": "Same split-and-ternary change. The false case gives the same bytes as before."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Transforms/FormatterTemplate.tt",
+          "lineStart": 14,
+          "note": "The .tt source carries the same ternary, so it matches the generated .cs."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Transforms/StringKey/StringKeyFormatterTemplate.tt",
+          "lineStart": 18,
+          "note": "The .tt source carries the same ternary, so it matches the generated .cs."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/ObjectSerializationInfo.cs",
+          "lineStart": 17,
+          "note": "The property is `bool IsUserDeclaredFormatter { get; init; }`, so it defaults to false."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 118,
+          "note": "This is the only place that sets the flag to true. It is set only for the new user-declared formatter path."
+        }
+      ],
+      "reasoning": "Both .tt and .cs templates emit \\\"partial class\\\" when the flag is true and \\\"internal sealed class\\\" otherwise. For owned types the flag keeps its default of false. The concatenated output is then \\\"\\\\t\\\" + \\\"internal sealed class\\\" + \\\" \\\" + name, which is byte-identical to the old literal. I found no other edits to these templates in the hunks. EnumTemplate and UnionTemplate still emit `internal sealed class` unchanged. The claim names only the two formatter templates, so that does not contradict it. The flag also takes part in equality (ObjectSerializationInfo.cs:168), which does not change output. I did not run the snapshot tests.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C8",
+      "verdict": "supported",
+      "confidence": "high",
+      "basis": "Direct code reading of the descriptors and GeneratedFormatterCollector, compared with the release-tracking file, the index and the four doc pages. No execution.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Analyzers/MsgPack00xMessagePackAnalyzer.cs",
+          "lineStart": 318,
+          "lineEnd": 352,
+          "note": "Four descriptors MsgPack019-022. Category is Usage, severity is Error, and the titles match the release-tracking entries and the doc headings."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 47,
+          "lineEnd": 74,
+          "note": "019 is reported when the class is not partial. 020 is reported when the count of IMessagePackFormatter<T> interfaces is not exactly one. 021 is reported for generic, abstract, non-class/struct or inaccessible data types."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 189,
+          "lineEnd": 198,
+          "note": "022 is reported when a surrogate member has no same-name target, the target is not public read-write, or the types differ. This matches MsgPack022.md."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/AnalyzerReleases.Unshipped.md",
+          "lineStart": 26,
+          "lineEnd": 29,
+          "note": "Four release-tracking rows (Usage | Error) for MsgPack019-022."
+        },
+        {
+          "kind": "docs",
+          "file": "doc/analyzers/index.md",
+          "lineStart": 26,
+          "lineEnd": 29,
+          "note": "Four index rows linking to the new pages."
+        },
+        {
+          "kind": "docs",
+          "file": "doc/analyzers/MsgPack022.md",
+          "lineStart": 1,
+          "lineEnd": 31,
+          "note": "The four pages doc/analyzers/MsgPack019.md to MsgPack022.md exist. Each describes behaviour that the collector implements."
+        }
+      ],
+      "reasoning": "Each of the four IDs has a descriptor, a call site, a release-tracking row, an index row and a doc page. The doc text matches the implemented conditions: partial check, exactly-one-interface check, generic/abstract/inaccessible data type check, and the surrogate name/type/read-write match. I found nothing contradicting the claim. The tests that would show these diagnostics firing were not examined, because the claim is about docs and release tracking.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C9",
+      "verdict": "supported",
+      "confidence": "medium",
+      "basis": "Direct code reading of the collector's constructor check and the descriptor ID. No execution and no test run. The nested-type resolution promise was not traced into the emitter.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 76,
+          "lineEnd": 81,
+          "note": "A class without an accessible parameterless constructor reports NoDeserializingConstructor and returns null. Structs skip the check."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Analyzers/MsgPack00xMessagePackAnalyzer.cs",
+          "lineStart": 151,
+          "lineEnd": 159,
+          "note": "The NoDeserializingConstructor descriptor uses DeserializingConstructorId, which line 20 defines as \"MsgPack007\"."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 99,
+          "lineEnd": 109,
+          "note": "constructorParameters is Array.Empty and nestedFormatterRequired is false, so constructor parameters are never matched and no nested formatters are generated."
+        },
+        {
+          "kind": "docs",
+          "file": "README.md",
+          "note": "The Limitations list in the added section states the three promises: parameterless constructor, parameterized-only types unsupported, and nested types resolved through other resolvers."
+        }
+      ],
+      "reasoning": "The README's constructor and limitation statements are backed by the collector's isClass and parameterless-constructor check. That check emits the MsgPack007 descriptor, which I confirmed by reading the ID constant. The nested-type claim is consistent with the model (no nested formatter, no custom formatter on members), but I did not trace the emitter's use of the resolvers.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C10",
+      "verdict": "supported",
+      "confidence": "medium",
+      "basis": "Direct code reading of the tests, the fixture types and the csproj. Nothing was executed, so I did not see the tests pass.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "tests/MessagePack.SourceGenerator.ExternalTypes/MessagePack.SourceGenerator.ExternalTypes.csproj",
+          "lineStart": 1,
+          "lineEnd": 17,
+          "note": "The csproj has no MessagePack PackageReference or ProjectReference. The repo's Directory.Build.props adds none either."
+        },
+        {
+          "kind": "code",
+          "file": "tests/MessagePack.SourceGenerator.ExternalTypes/ExternalWidget.cs",
+          "lineStart": 7,
+          "lineEnd": 15,
+          "note": "ExternalWidget and ExternalPerson are plain POCOs with no attributes."
+        },
+        {
+          "kind": "code",
+          "file": "tests/MessagePack.SourceGenerator.ExecutionTests/GeneratedFormatterForExternalTypes.cs",
+          "lineStart": 9,
+          "lineEnd": 37,
+          "note": "Two formatters are contractless. ExternalWidgetFormatter uses a surrogate with Key(3), Key(7) and an IgnoreMember property."
+        },
+        {
+          "kind": "test",
+          "file": "tests/MessagePack.SourceGenerator.ExecutionTests/GeneratedFormatterForExternalTypesTests.cs",
+          "lineStart": 12,
+          "lineEnd": 62,
+          "note": "ContractlessClassRoundTrips and ContractlessStructRoundTrips cover round-trip. ContractlessClassUsesStringKeysForPublicReadWriteMembers checks the 0x82 map header and the Id and Label keys. SurrogateControlsKeysAndMembership checks that the array header is 8 and that Internal is not serialized."
+        },
+        {
+          "kind": "test",
+          "file": "tests/MessagePack.SourceGenerator.ExecutionTests/GeneratedFormatterForExternalTypesTests.cs",
+          "lineStart": 86,
+          "lineEnd": 92,
+          "note": "GeneratedFormattersAreRegisteredInGeneratedResolver asserts that GeneratedMessagePackResolver.Instance.GetFormatter returns the generated formatter types."
+        }
+      ],
+      "reasoning": "The claim lists four things. Round-trip, string keys, an 8-slot array and resolver registration are each asserted by a specific test. The external assembly has no MessagePack reference, and the execution test project references it, so the path crosses an assembly boundary. The tests would fail if the generator did not produce these formatters, because the partial classes would be empty and would not implement the interface. A caveat is that the resolver test uses GetFormatter directly and the other tests go through CompositeResolver. Both depend on registration in the generated resolver, so this is fine. One small gap: the 8-slot test checks the array header and the round-trip, but it does not check which slots (3 and 7) are filled.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C11",
+      "verdict": "supported",
+      "confidence": "medium",
+      "basis": "Direct reading of the whole test file and the execution-test file; no tests were run.",
+      "evidence": [
+        {
+          "kind": "test",
+          "file": "tests/MessagePack.SourceGenerator.Tests/GeneratedMessagePackFormatterTests.cs",
+          "lineStart": 30,
+          "lineEnd": 210,
+          "note": "Six tests: MsgPack019 (non-partial formatter), 020 (formatter without IMessagePackFormatter<T>), 021 (abstract type), 022 twice (missing member, type mismatch), and 005 (mixed int/string keys). No test has a surrogate member without [Key], a NoDeserializingConstructor case, or a struct or inherited member."
+        },
+        {
+          "kind": "test",
+          "file": "tests/MessagePack.SourceGenerator.ExecutionTests/GeneratedFormatterForExternalTypes.cs",
+          "lineStart": 9,
+          "lineEnd": 37,
+          "note": "The execution tests use a class surrogate with [Key]/[IgnoreMember] and ExternalPoint, which may be a struct. They do not test a missing [Key] on a surrogate member, NoDeserializingConstructor, or an inherited member. ExternalPoint is not confirmed to be a struct, so a struct case there is possible."
+        }
+      ],
+      "reasoning": "The listed diagnostics are all exercised by the tests in the diff. I found no test for a missing [Key] on a surrogate member, NoDeserializingConstructor, or inherited members in surrogate mode. The one gap in my check is that I did not read ExternalPoint's definition. The claim's \"no test covers a struct\" could be wrong if ExternalPoint is a struct, but that case would be contractless mode, not surrogate mode, so the claim as worded still holds.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C12",
+      "verdict": "supported",
+      "confidence": "high",
+      "basis": "Direct code reading of the whole new file against the requirement text (F1–F5, N1–N3).",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 190,
+          "lineEnd": 190,
+          "note": "A surrogate member is rejected unless the target member's type equals the surrogate member's type. F3 only asks for flagging a surrogate property with no matching property."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 64,
+          "lineEnd": 64,
+          "note": "Generic and abstract formatted types are rejected (IsGenericType: false, IsAbstract: false). No requirement item mentions this."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 84,
+          "lineEnd": 85,
+          "note": "needsCast is computed for explicit IMessagePackSerializationCallbackReceiver implementations and passed as needsCastOnBefore/After. No requirement item mentions callbacks."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 185,
+          "lineEnd": 202,
+          "note": "The existing DoNotMixStringAndIntKeys and KeysMustBeUnique diagnostics are reused for surrogate keys. F3 names only a missing key and a missing matching property."
+        }
+      ],
+      "reasoning": "All four behaviours are in the file. None maps to F1–F5 or N1–N3. F3 covers only a missing matching property and a missing key. The added behaviours are type-equality matching, generic/abstract rejection, the explicit-callback cast, and the reused uniqueness and key-mix diagnostics. I did not check whether the MemberNeedsKey and SurrogateMemberNotFound diagnostics satisfy F3. The claim lists \"MsgPack005/007/003/004-style\" IDs, and I did not map those numbers to the diagnostic descriptors. The scope claim holds regardless. Whether the extras are acceptable is for the human to decide.",
+      "severity": "info"
+    },
+    {
+      "claimId": "C13",
+      "verdict": "supported",
+      "confidence": "high",
+      "basis": "Direct code reading of the csproj and the glob of matching files; no execution.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "tests/MessagePack.SourceGenerator.MapModeExecutionTests/MessagePack.SourceGenerator.MapModeExecutionTests.csproj",
+          "lineStart": 13,
+          "lineEnd": 14,
+          "note": "The Compile Exclude now also lists ..\\ExecutionTests\\**\\GeneratedFormatterForExternalTypes*.cs, and a comment says the ExternalTypes assembly is not referenced."
+        },
+        {
+          "kind": "code",
+          "file": "tests/MessagePack.SourceGenerator.ExecutionTests/GeneratedFormatterForExternalTypes.cs",
+          "note": "The glob matches this file and GeneratedFormatterForExternalTypesTests.cs in ExecutionTests. Both are now left out of the map-mode project."
+        }
+      ],
+      "reasoning": "The HEAD csproj contains the added exclude, which matches the claim. The glob matches two files, so the exclusion removes both the feature's formatter and its tests from the force-map-mode build. The second half of the claim, that the feature is therefore not exercised in force-map mode, follows from that. I did not check whether other files in the project use the feature. The requirement does not mention this change. It narrows test coverage, and the reviewer should decide whether that is acceptable.",
+      "severity": "minor"
+    },
+    {
+      "claimId": "C14",
+      "verdict": "supported",
+      "confidence": "medium",
+      "basis": "Direct reading of the full Initialize method, the equality member, the templates and the formatter filter. No tests were run. I could not diff other shared files (e.g. TypeCollector) against BASE.",
+      "evidence": [
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+          "lineStart": 36,
+          "lineEnd": 76,
+          "note": "The existing MessagePackObject and union inputs still go through TypeCollector.Collect. Only the tuple access paths were re-indexed for the extra Combine (Left.Left.Left.Left and Left.Left.Left.Right). The new requests are handled in a separate loop that does nothing when there are none."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/ObjectSerializationInfo.cs",
+          "lineStart": 17,
+          "lineEnd": 17,
+          "note": "IsUserDeclaredFormatter is a non-required init property. It defaults to false for every existing ObjectSerializationInfo."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/ObjectSerializationInfo.cs",
+          "lineStart": 168,
+          "lineEnd": 168,
+          "note": "The new equality term compares false == false for existing types, so it does not change their equality."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/CodeAnalysis/GeneratedFormatterCollector.cs",
+          "lineStart": 118,
+          "lineEnd": 118,
+          "note": "This is the only place that sets IsUserDeclaredFormatter = true."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/Transforms/FormatterTemplate.tt",
+          "lineStart": 14,
+          "lineEnd": 14,
+          "note": "When the flag is false the template emits 'internal sealed class', which matches BASE (base FormatterTemplate.tt:14). StringKeyFormatterTemplate.tt:18 is the same."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/GeneratorUtilities.cs",
+          "lineStart": 35,
+          "lineEnd": 43,
+          "note": "This filter excludes only classes carrying the new attribute from the hand-written formatter list. Other formatters are unaffected."
+        },
+        {
+          "kind": "code",
+          "file": "src/MessagePack.SourceGenerator/MessagePackGenerator.cs",
+          "lineStart": 115,
+          "lineEnd": 131,
+          "note": "The diagnostics pipeline is separate and reports nothing when no [GeneratedMessagePackFormatter] class exists."
+        }
+      ],
+      "reasoning": "Without the new attribute, the generator produces the same models and the same template text as BASE. The extra Combine only changes how the tuple is indexed, and I checked each index. The new flag defaults to false and adds a false == false term to equality. Both templates emit the same 'internal sealed class' text when the flag is false. The formatter filter excludes only types carrying the new attribute. I searched HEAD for the new symbols and found them only in the files listed. I did not run the snapshot tests, and I could not confirm that TypeCollector and the other shared code are untouched, so confidence is medium.",
+      "severity": "info"
+    }
+  ],
+  "coverage": [
+    {
+      "requirementId": "F1",
+      "status": "partial",
+      "claimIds": [
+        "C1",
+        "C2"
+      ],
+      "note": "Generator fills partial IMessagePackFormatter<T> classes (C1, medium), but the attribute has no typeof(External) constructor (C2), so F1's example form doesn't compile; type comes from the interface. Abstract/generic/inaccessible T are rejected. Human question: is the interface-derived form acceptable as the 'e.g.' in F1?"
+    },
+    {
+      "requirementId": "F2",
+      "status": "addressed",
+      "claimIds": [
+        "C3",
+        "C4"
+      ],
+      "note": "Contractless mode (public read-write, ordinal-sorted string keys) and SurrogateType mode (name+type match, surrogate not used at run time) are implemented. Medium confidence; edge cases with hidden/one-accessor overridden members; emitter templates not fully read."
+    },
+    {
+      "requirementId": "F3",
+      "status": "addressed",
+      "claimIds": [
+        "C5",
+        "C8",
+        "C11"
+      ],
+      "note": "MsgPack022 covers surrogate member without matching target; MsgPack003 reused for missing key. Emitted from the generator pipeline, not a DiagnosticAnalyzer. Tests cover 022 but no test for the missing-[Key] surrogate path."
+    },
+    {
+      "requirementId": "F4",
+      "status": "not-checkable",
+      "claimIds": [],
+      "note": "Rejection of copying attributes into Project A is a design constraint; no claim verifies it. The surrogate approach (C4) is consistent with it, but no claim covers it directly."
+    },
+    {
+      "requirementId": "F5",
+      "status": "addressed",
+      "claimIds": [
+        "C6",
+        "C10"
+      ],
+      "note": "Generated formatters registered in GeneratedMessagePackResolver as ObjectSerializationInfo, excluded from hand-written discovery; a test asserts resolver registration. Medium confidence; no snapshot or tests run."
+    },
+    {
+      "requirementId": "N1",
+      "status": "addressed",
+      "claimIds": [
+        "C3",
+        "C10"
+      ],
+      "note": "Only public read-write members are serialized in contractless mode (C3, medium); test asserts string keys across an assembly boundary."
+    },
+    {
+      "requirementId": "N2",
+      "status": "addressed",
+      "claimIds": [
+        "C7",
+        "C14"
+      ],
+      "note": "Templates emit identical 'internal sealed class' text when the new flag is false (C7, high); C14 is medium. Snapshot tests were not run, so there's no execution evidence."
+    },
+    {
+      "requirementId": "N3",
+      "status": "partial",
+      "claimIds": [
+        "C8",
+        "C9"
+      ],
+      "note": "New analyzer IDs MsgPack019-022 have index entries and doc pages (C8). README covers constructor and limitation behaviour (C9). No claim verifies documentation of the attribute itself beyond the README and doc comment."
+    }
+  ],
+  "execution": {
+    "ran": false,
+    "summary": "Execution evidence disabled (run with --exec to run the added tests and the mutation check)."
+  },
+  "routedToHuman": [],
+  "recommendation": "needs-human",
+  "recommendationReasons": [
+    "no execution evidence (tests not run here)",
+    "high risk tier requires a human on every unverifiable item",
+    "requirement items only partially covered or not checkable: F1, F4, N3"
+  ],
+  "costUsd": 1.6
+}

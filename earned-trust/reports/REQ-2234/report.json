@@ -839,9 +839,19 @@
   },
   "routedToHuman": [
     {
+      "claimId": "C1",
+      "question": "Evidence contradicts C1. Decide whether the change is still acceptable and record why.",
+      "why": "contradicted: The MsgPack004 path is unchanged between BASE and HEAD, and BASE already runs Collect on suppressed types. So HEAD does report MsgPack004 for a member without Key/IgnoreMember on a suppressed type, but the diff did not cause that. The word \"now\" is not supported by the diff. What the diff does change is the duplicate-key and mixed-key handling, which could previously throw. That is a different behaviour from the one claimed. I did not find any BASE code that skips suppressed types, and nothing was run to see BASE fail. A possible BASE failure outside TypeCollector (for example a thrown exception that masks all diagnostics) is not ruled out, and that is why confidence is only medium."
+    },
+    {
       "claimId": "C7",
       "question": "Run the new test class against BASE src, for example by stashing the TypeCollector.cs changes. Which tests fail? If MemberWithoutKeyIsReported and AllowPrivateRequiredIsReported pass, where is the 3.1.1 regression fixed, and how do these tests guard it?",
       "why": "contradicted: The claim says the new tests fail without the fix and so prove the analyzer runs on suppressed types. The claim's own caveat points the other way, and the code agrees. The analyzer entry point is identical at BASE and HEAD and does not check SuppressSourceGeneration. At BASE, TypeCollector reports MsgPack004 and MsgPack015 before the suppression early return, and those paths are unchanged. So the MsgPack004 and MsgPack015 tests that N1 requires should already pass at BASE. They do not show the regression, and they do not show that the analyzer ran on a suppressed type only because of this change. Only the duplicate-key and mixed-key tests probably fail at BASE, from the unguarded Add. I found no change in the analyzer or TypeCollector entry path that affects whether suppressed types are analyzed. I did not find where HEAD differs from BASE for the 3.1.1 regression itself. I could not run anything, so the BASE pass/fail result is inferred."
+    },
+    {
+      "claimId": "C8",
+      "question": "Evidence contradicts C8. Decide whether the change is still acceptable and record why.",
+      "why": "contradicted: The claim says the diff removes or changes a code path that skips suppressed types in the analyzer. In TypeCollector.cs the diff only touches duplicate-key and mixed-key handling. The `suppressSourceGeneration is true` gate is unchanged and still comes after the diagnostics. I found no analyzer-level skip of suppressed types in base or head, so the premise that such a path exists at base is not shown. The diff may fix the user-visible symptom some other way, for example by stopping a duplicate-key exception from aborting analysis. That is a different mechanism from the one the claim names. I only saw the TypeCollector.cs hunks and the other files I opened, so a change elsewhere could still exist."
     }
   ],
   "recommendation": "reject",

@@ -56,6 +56,17 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T, i: number) =
   return out;
 }
 
+/** Every claim that is not supported goes to the human, plus supported ones that carry a question (scope). */
+export function routed(verdicts: Verdict[]): Report['routedToHuman'] {
+  return verdicts
+    .filter((v) => v.verdict !== 'supported' || v.humanQuestion)
+    .map((v) => ({
+      claimId: v.claimId,
+      question: v.humanQuestion ?? (v.verdict === 'contradicted' ? `Evidence contradicts ${v.claimId}. Decide whether the change is still acceptable and record why.` : `Confirm ${v.claimId} yourself; the reviewer could not.`),
+      why: v.refusedBecause ?? `${v.verdict}: ${v.reasoning}`,
+    }));
+}
+
 export function recommend(verdicts: Verdict[], coverage: Coverage[], execution: ExecutionEvidence, facts: Facts): { recommendation: Recommendation; reasons: string[] } {
   const reasons: string[] = [];
   // Only a contradiction that matters (blocker/major) rejects; a minor one is a question for the human.
@@ -157,10 +168,7 @@ export async function review(opts: ReviewOptions): Promise<Report> {
   const cov = await askJson<{ coverage: Coverage[] }>(SYSTEM_REVIEWER, coveragePrompt(requirement, cav), COVERAGE_SCHEMA, { cacheDir, label: 'coverage' });
   costUsd += cov.costUsd;
 
-  const routedToHuman = verdicts
-    .filter((v) => v.verdict !== 'supported' || v.humanQuestion)
-    .filter((v) => v.humanQuestion || v.refusedBecause)
-    .map((v) => ({ claimId: v.claimId, question: v.humanQuestion ?? 'Review this claim.', why: v.refusedBecause ?? `${v.verdict}: ${v.reasoning}` }));
+  const routedToHuman = routed(verdicts);
 
   const { recommendation, reasons } = recommend(verdicts, cov.data.coverage, execution, facts);
 

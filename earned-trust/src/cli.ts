@@ -66,10 +66,11 @@ async function main() {
       if (!values.report) throw new Error('--report required');
       const { readFileSync, writeFileSync } = await import('node:fs');
       const { join } = await import('node:path');
-      const { recommend } = await import('./review.ts');
+      const { recommend, routed } = await import('./review.ts');
       const { renderMarkdown } = await import('./report.ts');
       const r = JSON.parse(readFileSync(join(values.report, 'report.json'), 'utf8'));
       const { recommendation, reasons } = recommend(r.verdicts, r.coverage, r.execution, r.facts);
+      r.routedToHuman = routed(r.verdicts);
       r.recommendation = recommendation;
       r.recommendationReasons = reasons;
       writeFileSync(join(values.report, 'report.json'), JSON.stringify(r, null, 2));

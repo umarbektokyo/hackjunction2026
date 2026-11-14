@@ -8,7 +8,16 @@ requirement; an AI verifier attaches evidence (file:line, test, execution result
 concept card and [LESSONS.md](LESSONS.md) for the lessons log and failure modes.
 
 Reports for Tieto's four agent-written branches are in [`reports/`](reports/), one folder per
-requirement ID. Start with [REQ-2234](reports/REQ-2234/report.md).
+requirement ID. Start with [REQ-2234](reports/REQ-2234/report.md); the demo script is [WALKTHROUGH.md](WALKTHROUGH.md).
+
+| Branch | Risk | Claims (supported / contradicted / unverifiable) | Recommendation | Headline finding |
+|---|---|---|---|---|
+| [REQ-2234](reports/REQ-2234/report.md) | low | 14 (11 / 3 / 0) | **reject** | The regression it claims to fix is already fixed on the base; the headline tests pass without the change. Only code change: duplicate-key crash guards. |
+| [REQ-2283](reports/REQ-2283/report.md) | low | 13 (9 / 3 / 1) | **needs human** | The one-line crash fix is right; it comes with an unrequested global filter that drops diagnostics, inconsistently applied. Controls from the issue's trigger matrix untested. |
+| [REQ-2297](reports/REQ-2297/report.md) | medium | 13 (12 / 0 / 1) | **needs human** | `[ExcludeFromCodeCoverage]` is wrapped in `#if !NETSTANDARD2_0 && !NETFRAMEWORK` on a wrong belief that it does not exist there; 222 regenerated files hide a 20-line change. |
+| [REQ-2129](reports/REQ-2129/report.md) | high | 14 (14 / 0 / 0) | **needs human** | The largest change is the cleanest: every claim supported with pointers. High tier + no execution evidence keeps a human in the loop; attribute shape differs from the issue's example. |
+
+Model cost for the four reports: about $6.50 with `sonnet`, 6-12 minutes each at concurrency 4.
 
 ## Layout
 

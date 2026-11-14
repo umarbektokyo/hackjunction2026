@@ -41,6 +41,11 @@ Open [reports/REQ-2283/report.md](reports/REQ-2283/report.md).
 4. **C12**: the doc sentence is more absolute than the code.
 5. Recommendation: NEEDS A HUMAN, with four questions. None of them is "read the diff".
 
+If time allows, [REQ-2297](reports/REQ-2297/report.md): 237 files, of which 222 are regenerated
+snapshots. The model never reads them; the facts step counts them and raises the risk tier. The real
+finding is in F1/F2: the attribute is wrapped in `#if !NETSTANDARD2_0 && !NETFRAMEWORK` because the
+agent believed it does not exist there. It does. The guard removes the feature where it was asked for.
+
 ## 3. The human step (1 min)
 
 ```sh
