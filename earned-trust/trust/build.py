@@ -42,15 +42,19 @@ def build(issue, use_llm=False):
 
     checks = {c["id"]: evidence.run_check(repo, head, issue_text.splitlines(), c) for c in rv["checks"]}
     test_names = [u["name"] for u in units if u["tier"] == "test" and "[Fact]" in "\n".join(l["text"] for l in u["lines"])]
-    tests = evidence.run_tests(repo, case["test_project"], test_names)
+    tests = evidence.run_tests(repo, case["test_project"], test_names, head, base)
 
     refusals = []
     for r in rv["refusals"]:
         owner = owners["routing"].get(r["category"], owners["approver"])
         refusals.append({**r, "owner": owner})
 
+    files = {}
     for u in units:
         u |= {"reqs": [], "summary": "", "covered_by": []} | rv["units"].get(u["id"], {})
+        if u["file"] not in files:
+            files[u["file"]] = gitdiff.show(repo, head, u["file"])
+        u["body"] = files[u["file"]][u["start"] - 1:u["end"]]           # the whole function, as it is after the change
         u["callers"] = evidence.blast_radius(repo, head, u)
         u["calls"] = evidence.calls_out(repo, head, u)
         mine = [r for r in refusals if u["id"] in r["units"]]

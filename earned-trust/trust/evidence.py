@@ -4,9 +4,12 @@ import re
 import shutil
 from collections import Counter
 import subprocess
+from pathlib import Path
 
 from .gitdiff import git, show
 from .units import spans
+
+ROOT = Path(__file__).resolve().parent.parent
 
 GATES_REQUIRED = {"shipped": ("traced", "checked", "executed", "uncontested"),
                   "test": ("traced", "checked", "uncontested"),
@@ -108,18 +111,46 @@ def run_check(repo, rev, issue_lines, check):
     return {**check, "holds": holds, "count": len(matches), "matches": matches[:8]}
 
 
-def run_tests(repo, project, names):
-    """Run the named tests with `dotnet test` when the SDK exists. Never reports a pass it did not see."""
-    if not shutil.which("dotnet"):
-        return {n: {"status": "not run", "why": ".NET SDK not installed on the review machine"} for n in names}
+def _checkout(repo, rev, name, revert=None):
+    """A worktree of `rev` under .work/<name>; with revert=(base, path) that path is put back to base."""
+    path = ROOT / ".work" / name
+    if not path.exists():
+        git(repo, "worktree", "add", "--force", "--detach", str(path), rev)
+    git(str(path), "checkout", "-q", "--detach", rev)
+    git(str(path), "checkout", "-q", rev, "--", ".")
+    if revert:
+        git(str(path), "checkout", "-q", revert[0], "--", revert[1])
+    return str(path)
+
+
+def _dotnet_test(cwd, project, names):
     flt = "|".join(f"FullyQualifiedName~{n}" for n in names)
     out = subprocess.run(["dotnet", "test", project, "--filter", flt, "--logger", "console;verbosity=normal"],
-                         cwd=repo, capture_output=True, text=True).stdout
+                         cwd=cwd, capture_output=True, text=True).stdout
+    return {n: "passed" if re.search(rf"Passed\s+\S*\b{n}\b", out) else
+               "failed" if re.search(rf"Failed\s+\S*\b{n}\b", out) else "not found in output" for n in names}
+
+
+def run_tests(repo, project, names, head, base, source="src"):
+    """Run the named tests with `dotnet test` when the SDK exists, twice: on the change, and on the change
+    with its source reverted to base. A test is evidence for the fix only if it passes with the change and
+    fails without it. Never reports a pass it did not see."""
+    if not names:
+        return {}
+    if not shutil.which("dotnet"):
+        return {n: {"status": "not run", "why": ".NET SDK not installed on the review machine"} for n in names}
+    rev = git(repo, "rev-parse", head).strip()[:10]
+    here = _dotnet_test(_checkout(repo, head, rev), project, names)
+    without = _dotnet_test(_checkout(repo, head, rev + "-without-fix", (base, source)), project, names)
     result = {}
     for n in names:
-        status = "passed" if re.search(rf"Passed\s+\S*\b{n}\b", out) else \
-            "failed" if re.search(rf"Failed\s+\S*\b{n}\b", out) else "not found in output"
-        result[n] = {"status": status, "why": "dotnet test"}
+        if here[n] == "passed" and without[n] == "failed":
+            why = "passes with the change and fails without it: it tests the fix"
+        elif here[n] == "passed":
+            why = f"passes with the change, and {without[n]} without it: it does not test the fix"
+        else:
+            why = f"{here[n]} with the change"
+        result[n] = {"status": here[n], "without_fix": without[n], "proves_fix": here[n] == "passed" and without[n] == "failed", "why": why}
     return result
 
 
@@ -132,7 +163,7 @@ def gates(unit, checks, tests, refusals):
         "checked": ("missing", ["no check"]) if not mine else
                    ("pass" if all(c["holds"] for c in mine) else "fail", [c["id"] for c in mine]),
         "executed": ("missing", ["no covering test"]) if not covering else
-                    ("pass" if all(tests[t]["status"] == "passed" for t in covering) else "missing",
+                    ("pass" if all(tests[t].get("proves_fix") for t in covering) else "missing",
                      [f"{n} of {len(covering)} tests {st}" for st, n in
                       sorted(Counter(tests[t]["status"] for t in covering).items())]),
         "uncontested": ("pass", []) if not refusals else ("fail", [r["id"] for r in refusals]),

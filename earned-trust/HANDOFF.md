@@ -53,17 +53,39 @@ Also: `#<unit id>` in the URL opens that unit (handy for demo and screenshots, e
 `button { all: unset }`, which caused a horizontal scrollbar in the list (fixed); long file paths
 in the editor's top bar ellipsize from the left. `DEMO.md` "Tests" section updated.
 
+## Done on 14 Nov, later (user questions: whole function, tests, dots, commits)
+
+- **Whole function in the editor.** The dossier stores `unit.body` (the unit's lines at head);
+  `whole(u)` in `web/index.html` merges the diff back in. In units over 60 lines, unchanged
+  stretches more than 3 lines from a change fold into "⋯ N unchanged lines" (click to open).
+- **Tests run for real, twice.** `evidence.run_tests` runs `dotnet test` in two worktrees under
+  `.work/` (gitignored): the head, and the head with `src/` reverted to base. A test proves the fix
+  only if it passes with the change and fails without it (`proves_fix`); the *executed* gate needs
+  that. 2283: 3 of 3 prove the fix (without it they crash with the issue's IndexOutOfRangeException).
+  Needs .NET 8: `nix develop /home/ayo/Projects/hackjunction2026/earned-trust -c ./run.sh` (the
+  flake is on `main`). Without dotnet tests show "not run", as before.
+- **Dots explain themselves on hover** (`MEANS` in the page; test dots use the test's `why`).
+  New dot: hollow orange = passes but does not test the fix. "held" now reads "not proven by a test".
+- **Stale hand-written findings:** F-notes on GetObjectInfo ("Which site crashed is not
+  established", "The new tests do not reach either…") are contradicted by the test run now. Ask
+  Umarbek / the user before rewriting them; the real fix is task 2 below.
+
 ## Next tasks (judging is 15 Nov)
 
 1. **Ask the user to look at the page at full size** and react; do not add elements unasked.
-2. **Feed real evidence into this UI.** `main` has a second half of this entry (see below): real
+2. **Switch between the four changes (the user asked for this).** Each Tieto branch is one agent
+   commit; only 2283 has a dossier. Plan: a switcher in the left header (`/api/state?case=N`,
+   `serve.py` serving every `dossier/*.json`), `input/<N>/case.json` per branch (base is
+   `origin/HEAD`'s merge-base, not `master`), and the review layer from task 3. 2297 touches 222
+   generated `.g.cs` files: group them into one unit per template, not 222 rows.
+3. **Feed real evidence into this UI.** `main` has a second half of this entry (see below): real
    Claude reviews of all four Tieto branches in `earned-trust/reports/REQ-*/report.json` (claims,
    verdicts, evidence pointers file:line, routed questions). Replace `input/2283/review.handwritten.json`
    with an adapter from `REQ-2283/report.json`, then add the other three branches. Biggest gain left.
-3. **Merge the two halves.** Both live in `earned-trust/` and both have README, CONCEPT, LESSONS:
+4. **Merge the two halves.** Both live in `earned-trust/` and both have README, CONCEPT, LESSONS:
    a plain `git merge` will conflict. Agree a layout with the user and Umarbek first (suggestion:
    CLI + reports at `earned-trust/`, this reviewer at `earned-trust/reviewer/`).
-4. Slides (5), a 3-minute demo, a backup video.
+5. Slides (5), a 3-minute demo, a backup video.
 
 Not built, raised by the user: a **visual before/after gallery for UI components**. The Tieto
 sample is a C# library with no UI, so there is nothing to render. Ask before starting.

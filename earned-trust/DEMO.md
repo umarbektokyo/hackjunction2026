@@ -1,6 +1,6 @@
 # Demo script (3 to 4 minutes)
 
-Before: `rm -rf decisions && ./run.sh`. One page, three panes: changed functions on the left, the
+Before: `rm -rf decisions && nix develop ../../hackjunction2026/earned-trust -c ./run.sh` (the dev shell brings .NET 8 so the tests run). One page, three panes: changed functions on the left, the
 editor in the middle, the AI's review on the right. Criteria in brackets.
 
 ## 0:00 The question (20 s)
@@ -22,7 +22,8 @@ prove or refused to decide."
 - Selected: **TypeCollector()**, orange. Middle pane, top to bottom:
   - **Mentions**: "Where it is called from, with the real lines: Collect, which is reached from
     the analyzer and from the generator."
-  - **Change**: "One line."
+  - **Change**: "One line, shown inside the whole function. Line 248 still calls the old reporter
+    directly, so the new filter is bypassed there."
   - **Calls**: "What it calls: the new filter, ReportIfLocatedInCompilation." Click the name to
     walk there, then go back.
 - "One line, but the code around it shows that every analyzer diagnostic now passes through that
@@ -31,8 +32,9 @@ prove or refused to decide."
 
 ## 2:00 Tests (40 s) [Evidence]
 
-- Top bar of the editor: "Three rings: 3 tests cover this function, none has run. We never show
-  a test as passing unless it ran."
+- Top bar of the editor on **GetObjectInfo**: "3 of 3 prove the fix. Each test ran twice: with the
+  change it passes, with the source change reverted it fails with the crash from the issue. A
+  test that passes both ways gets a hollow orange dot: it does not test the fix." Hover a dot.
 - Left pane: "The tests that belong to this function stay dark, with the helpers they call; the
   rest go grey." Click a test: the tests of the same code stay lit.
 - Click **GetPropertyIdentifierLocation**: "No test reaches this function. It says so in orange,

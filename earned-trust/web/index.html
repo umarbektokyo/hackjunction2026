@@ -17,6 +17,7 @@
   i.led { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none;
           background: var(--ink); border: 1.3px solid var(--ink); }
   i.held, i.notrun { background: none; } i.routed, i.failed { background: var(--hot); border-color: var(--hot); }
+  i.weak { background: none; border-color: var(--hot); }
   i.suggested { background: none; border-style: dashed; border-color: var(--mute); }
 
   /* left: the changed functions, like a list of changed files */
@@ -54,6 +55,8 @@
   .code .add { background: var(--add); } .code .del { background: var(--del); color: #7a5a4e; }
   .code .hit .t { box-shadow: inset 2px 0 0 var(--hot); padding-left: calc(var(--i, 0ch) + 4ch + 8px); margin-left: -10px; }
   .code mark { background: none; color: var(--hot); font-weight: 600; }
+  .code .fold { all: unset; display: block; cursor: pointer; padding: 3px 0 3px 76px; color: var(--mute); font: 11px var(--mono); }
+  .code .fold:hover { color: var(--ink); background: #e6e6e0; }
   .quiet { padding: 4px 20px 0 76px; font: 11px var(--mono); color: var(--mute); }
   main .end { height: 80px; }
 
@@ -89,6 +92,18 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const base = (path) => path.split("/").pop();
 let S, sel;
+const opened = new Set();                                         // unfolded stretches of unchanged code
+const MEANS = {
+  cleared: "checked · safe to skip: the AI's claims here are backed by checks, nobody has to read it",
+  held: "not proven by a test: no test that reaches this has passed with the change and failed without it",
+  routed: "needs a decision: the AI refuses to decide something here and names who should",
+  passed: "test passed", failed: "test failed", notrun: "test not run yet", suggested: "a test the AI suggests adding",
+  weak: "passes, but also passes without the fix, so it does not test it",
+};
+// A test's dot: filled only when it passed with the change and failed without it.
+const testLed = (n) => { const t = S.dossier.tests[n], cls = t.status === "passed" && !t.proves_fix ? "weak" : t.status.replace(/ /g, "");
+  return `<i class="led ${cls}" title="${esc(`${n}: ${t.why}`)}"></i>`; };
+const led = (cls, what = "") => `<i class="led ${cls}" title="${esc((what ? what + ": " : "") + (MEANS[cls] || cls))}"></i>`;
 
 const units = () => S.dossier.units;
 const unitOf = (file, name) => units().find((u) => u.file === file && u.name === name);
@@ -108,6 +123,8 @@ async function decide(item, decision) {
 }
 function go(id) { sel = id; render(); $("#editor").scrollTop = 0; $("#review").scrollTop = 0; }
 document.addEventListener("click", (e) => {
+  const f = e.target.closest("[data-fold]");
+  if (f) { opened.add(f.dataset.fold); return renderEditor(); }
   const t = e.target.closest("[data-go],[data-item]");
   if (t?.dataset.item) decide(t.dataset.item, t.dataset.decision);
   else if (t) go(t.dataset.go);
@@ -148,9 +165,9 @@ function renderList() {
   $("#list").innerHTML = [["shipped", "code"], ["test", "tests"], ["doc", "docs"]].map(([tier, name]) =>
     `<div class="group label">${name}</div>` + units().filter((u) => u.tier === tier).map((u) =>
       `<button class="row ${u.id === sel ? "sel" : ""} ${tier === "test" && dim.has(u.id) ? "dim" : ""}" data-go="${esc(u.id)}" title="${esc(u.file)}">
-         <i class="led ${u.status}"></i><span>${esc(title(u))}</span><em>+${u.added}${u.removed ? " −" + u.removed : ""}</em></button>`).join("")).join("");
+         ${led(u.status)}<span>${esc(title(u))}</span><em>+${u.added}${u.removed ? " −" + u.removed : ""}</em></button>`).join("")).join("");
   const open = D.refusals.filter((r) => !S.decisions[r.id]).length, held = D.summary.held, ap = D.owners.approver;
-  const wait = [open && `${open} decision${open > 1 ? "s" : ""}`, held && "a test run"].filter(Boolean).join(" and ");
+  const wait = [open && `${open} decision${open > 1 ? "s" : ""}`, held && "proving tests"].filter(Boolean).join(" and ");
   $("#merge").innerHTML = S.decisions.MERGE ? `<div class="label">merged · ${esc(ap.name)}</div>`
     : wait ? `<div class="label">merge · ${esc(ap.name)}<br>waits for ${wait}</div>`
     : `<button class="merge go" data-item="MERGE" data-decision="approved">merge · ${esc(ap.name)}</button>`;
@@ -171,6 +188,19 @@ function line(no, sign, text, cls = "", name = "", chg = null) {
   if (/^(\/\/|\/\*|\*)/.test(body)) cls += " cm";
   return `<div class="${cls}"><span class="n">${no}</span><span class="s">${sign}</span><span class="t" style="--i:${ind}ch">${t}</span></div>`;
 }
+// The whole unit as it reads after the change, with removed lines put back where they were.
+function whole(u) {
+  if (!u.body) return u.lines;                                     // dossier built before bodies were stored
+  const byNew = new Map(u.lines.filter((l) => l.kind !== "-").map((l) => [l.new, l])), before = new Map();
+  let pend = [];
+  for (const l of u.lines) { if (l.kind === "-") pend.push(l); else if (pend.length) { before.set(l.new, pend); pend = []; } }
+  const rows = [];
+  u.body.forEach((text, k) => {
+    const n = u.start + k;
+    rows.push(...(before.get(n) || []), byNew.get(n) || { kind: " ", new: n, text });
+  });
+  return rows.concat(pend);
+}
 // The part of a removed/added pair that differs: common prefix and suffix cut, snapped to whole words.
 function changed(a, b) {
   a = a.replace(/\t/g, "    "); b = b.replace(/\t/g, "    ");
@@ -189,10 +219,10 @@ const jump = (file, name, text) => { const u = unitOf(file, name); return u ? `<
 function renderEditor() {
   const u = units().find((x) => x.id === sel), code = !u.file.endsWith(".md");
   const names = u.tier === "shipped" ? u.covered_by : isTest(u) ? [u.name] : [], D = S.dossier;
-  const ran = names.filter((n) => ["passed", "failed"].includes(D.tests[n].status)).length;
+  const ran = names.filter((n) => ["passed", "failed"].includes(D.tests[n].status)).length, proven = names.filter((n) => D.tests[n].proves_fix).length;
   const strip = u.tier === "doc" ? "" : `<span class="tests ${names.length ? "" : "hot"}">${names.map((n) =>
-    `<i class="led ${D.tests[n].status.replace(" ", "")}" title="${esc(n)}: ${D.tests[n].status}"></i>`).join("")}
-    ${names.length ? `${ran} of ${names.length} test${names.length > 1 ? "s" : ""} run` : u.tier === "shipped" ? "no test reaches this" : ""}</span>`;
+    testLed(n)).join("")}
+    ${names.length ? (ran ? `${proven} of ${names.length} prove${names.length > 1 ? "" : "s"} the fix` : `${ran} of ${names.length} test${names.length > 1 ? "s" : ""} run`) : u.tier === "shipped" ? "no test reaches this" : ""}</span>`;
   let html = `<div class="path"><b>${esc(title(u))}</b><span>${esc(u.file)}:${u.start}–${u.end}</span>${strip}</div>`;
 
   if (code) {
@@ -205,17 +235,26 @@ function renderEditor() {
     if (!u.callers.length) html += `<div class="quiet">${isTest(u) ? "run by the test runner" : u.name === "file header" ? "—" : "no caller found in this repo"}</div>`;
   }
 
-  const cut = dedent(u.lines), chg = [];
-  for (let i = 0; i < u.lines.length;) {                         // pair each run of removed lines with the added run after it
-    let d = i; while (d < u.lines.length && u.lines[d].kind === "-") d++;
-    let a = d; while (a < u.lines.length && u.lines[a].kind === "+") a++;
-    for (let k = 0; k < Math.min(d - i, a - d); k++) [chg[i + k], chg[d + k]] = changed(cut(u.lines[i + k].text), cut(u.lines[d + k].text));
+  const rows = whole(u), cut = dedent(rows), chg = [];
+  for (let i = 0; i < rows.length;) {                             // pair each run of removed lines with the added run after it
+    let d = i; while (d < rows.length && rows[d].kind === "-") d++;
+    let a = d; while (a < rows.length && rows[a].kind === "+") a++;
+    for (let k = 0; k < Math.min(d - i, a - d); k++) [chg[i + k], chg[d + k]] = changed(cut(rows[i + k].text), cut(rows[d + k].text));
     i = a > i ? a : i + 1;
   }
-  html += `<div class="rule label">change</div><div class="code">${u.lines.map((l, i) => {
-    const no = l.new ?? l.old, prev = i && (u.lines[i - 1].new ?? u.lines[i - 1].old);
-    return (i && no - prev > 1 ? line("⋯", "", "") : "") + line(no, l.kind.trim(), cut(l.text), { "+": "add", "-": "del", " ": "" }[l.kind], "", chg[i]);
-  }).join("")}</div>`;
+  // Long functions: unchanged stretches more than 3 lines from a change fold away, one click to open.
+  const near = rows.map((_, i) => rows.slice(Math.max(0, i - 3), i + 4).some((r) => r.kind !== " "));
+  let out = "";
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    if (rows.length > 60 && !near[i]) {
+      let j = i; while (j < rows.length && !near[j]) j++;
+      const key = `${u.id}@${i}`;
+      if (j - i > 4 && !opened.has(key)) { out += `<button class="fold" data-fold="${esc(key)}">⋯ ${j - i} unchanged lines</button>`; i = j - 1; continue; }
+    }
+    out += line(r.new ?? r.old, r.kind.trim(), cut(r.text), { "+": "add", "-": "del", " ": "" }[r.kind], "", chg[i]);
+  }
+  html += `<div class="rule label">change · whole ${code ? "function" : "section"}</div><div class="code">${out}</div>`;
 
   if (code) {
     html += `<div class="rule label">calls · what it calls</div>`;
@@ -228,7 +267,7 @@ function renderEditor() {
 
 function renderReview() {
   const D = S.dossier, u = units().find((x) => x.id === sel), r = refusal(u);
-  const says = { cleared: "checked · safe to skip", held: "waiting for a test run", routed: `needs a decision · ${r?.owner.name}` }[u.status];
+  const says = { cleared: "checked · safe to skip", held: "not proven by a test yet", routed: `needs a decision · ${r?.owner.name}` }[u.status];
   let html = `<div class="label ${u.status === "routed" ? "hot" : ""}">${esc(says)}</div><p>${esc(u.summary)}</p>`;
 
   if (r) {
@@ -246,7 +285,7 @@ function renderReview() {
     const wanted = D.proposed_tests.filter((p) => p.for === f.id);
     return `<details><summary><span>${esc(f.title)}</span>${wanted.length ? `<em>${wanted.length} test${wanted.length > 1 ? "s" : ""} to add</em>` : ""}</summary>
       <p class="small">${esc(f.text)}</p>
-      ${wanted.map((p) => `<div class="suggest"><i class="led suggested"></i><span>${esc(p.text)}</span></div>`).join("")}</details>`;
+      ${wanted.map((p) => `<div class="suggest">${led("suggested")}<span>${esc(p.text)}</span></div>`).join("")}</details>`;
   }).join("")}</section>`;
 
   if (isTest(u)) html += `<section><div class="label">this test · ${esc(D.tests[u.name].status)}</div><p class="small">${esc(D.tests[u.name].why)}</p></section>`;
