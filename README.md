@@ -9,6 +9,7 @@ Junction 2026, Hype Areena, Espoo, Finland, 13–15 November 2026.
 |---|---|---|
 | Evil Club 1 | Break the Agent | AfterQuery |
 | Evil Club 2 | Spread | Bahn Express ([strategy](spread/STRATEGY.md), [working notes](spread/NOTES.md)) |
+| Evil Club 3 | Earned Trust in AI Code | Tieto ([concept card](earned-trust/CONCEPT.md), [README](earned-trust/README.md), [reports](earned-trust/reports/)) |
 
 ## AfterQuery: Break the Agent
 
@@ -92,6 +93,14 @@ Still to decide: what "nobility" means for the team, originality or real-world u
 - [ ] Your own exploit attempts written up, each with the fix
 - [ ] Agent failures sorted into categories and linked to decisions in the task
 - [ ] Optional: a small model trained on reference-run trajectories that improves in the environment
+
+## Tieto: Earned Trust in AI Code (key facts)
+
+- Design an AI code-review concept for agent-written changes and show it on Tieto's sample repo (`te-industry-tech-office/junction26-messagepack-csharp`, branches `ju26-issue-2283/2234/2129/2297`). Concept weighs more than code; it is a reference implementation, not a product.
+- **Deliverables:** concept card (recommendation, principles, trade-offs, limits), live walkthrough showing where trust comes from, lessons log, demo video or presentation.
+- **Judging:** clarity 30%, practicality 25%, measurement 25% (reverts and incidents don't rise as review time falls; AI findings accepted; time to merge; share routed to humans), evidence 20% (a named human can accept without a full read; what the AI found, what it refused to decide, and why).
+- **Prizes:** €2,000, €1,000, €500. Only 25 preliminary submissions, the fewest of the software challenges.
+- Our entry: `earned-trust/` — claims → evidence → verdict review (`cev`). Picked because it needs no partner credentials, and the agent branches contain real over-promises to find (e.g. 2234 documents and tests analyzer behaviour that the code never enables).
 
 ## Other prize pools (Agentic AI track)
 

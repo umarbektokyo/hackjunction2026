@@ -1,0 +1,18 @@
+{
+  "name": "earned-trust",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claims → evidence → verdict review for agent-written pull requests (Junction 2026, Tieto challenge)",
+  "bin": { "cev": "./dist/cli.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "cev": "node --enable-source-maps dist/cli.js",
+    "dev": "node --experimental-strip-types src/cli.ts",
+    "test": "node --test --experimental-strip-types src/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}
