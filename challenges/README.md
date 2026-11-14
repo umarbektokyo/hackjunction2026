@@ -52,22 +52,22 @@ the real values are in the repo's `.env`, which is not committed.
 | [Verda Compute Track](tech/verda-compute-track.md) | Verda | AI Infrastructure Track By Verda | $10,000 in Verda cloud credits + Verda hoodies |
 
 ## The preliminary submissions info:
-Trusted Trade Agents    105
-AI Glasses for Everyone, Everyday    73
-Make Blueprints Talk    70
-Decode the Noise    63
-Spread    61
-Break the Agent    60
-Equal Care Across Finland    53
-Personal Economic Trainer    53
-Beyond the Clinic    49
-The Internet Butler / Your Personal Assistant    48
-The Green European Renaissance    43
-Rethinking Recruitment    41
-Wikipedia Through Time.    41
-Make Unicorns Real    37
-The Web Is Your Real-Time Database    36
-Stop Simulating, Start Moving: See It. Detect It. Act on It. The Intel Physical AI Challenge    30
-Earned Trust in AI Code    25
-The Robot Teleoperation Challenge    17
-Aaltonomous Humanoid    13
+- Trusted Trade Agents    105
+- AI Glasses for Everyone, Everyday    73
+- Make Blueprints Talk    70
+- Decode the Noise    63
+- Spread    61
+- Break the Agent    60
+- Equal Care Across Finland    53
+- Personal Economic Trainer    53
+- Beyond the Clinic    49
+- The Internet Butler / Your Personal Assistant    48
+- The Green European Renaissance    43
+- Rethinking Recruitment    41
+- Wikipedia Through Time.    41
+- Make Unicorns Real    37
+- The Web Is Your Real-Time Database    36
+- Stop Simulating, Start Moving: See It. Detect It. Act on It. The Intel Physical AI Challenge    30
+- Earned Trust in AI Code    25
+- The Robot Teleoperation Challenge    17
+- Aaltonomous Humanoid    13
