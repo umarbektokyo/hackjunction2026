@@ -40,6 +40,19 @@ How we judge: We'll look at four things: how much room there is for the agent to
 
 **Tiebreaker:** If point totals are close, we'll favor a team that shows a smaller model improving after training on experience from its environment.
 
+## Insight
+
+### Starting points
+- Planning several steps ahead
+- Exploring an unfamiliar system
+- Using tools
+- Managing limited resources
+- Adapting when new information arrives
+
+These are prompts, not a list of required features.
+
+**A small environment with a well-chosen challenge can be enough.** Think about what better play looks like, how you would measure it, and whether an agent could increase its score without getting better at the task.
+
 ## Resources
 
 ## What we'll bring
