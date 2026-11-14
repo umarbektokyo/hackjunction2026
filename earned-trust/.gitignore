@@ -1,0 +1,4 @@
+sample-repo/
+.venv/
+__pycache__/
+decisions/
