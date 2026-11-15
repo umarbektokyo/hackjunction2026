@@ -14,6 +14,8 @@ eight runs ranked. Changes below were evaluated against the same fixed seeds.
 | Quote price ×0.98 | 4 | €14,983 | 4/4 | 92.8% | Reject |
 | Quote price ×0.99 | 4 | €14,986 | 4/4 | 93.9% | Reject |
 | 2% discount, modeled cost ≤55% of reference | 4 | €15,067 | 4/4 | 95.6% | No score change |
+| 2% discount, modeled cost ≤75% of reference | 4 | €14,693 | 4/4 | 92.8% | Reject |
+| Driver schedule fees ×0.98 | 4 | €14,691 | 4/4 | 93.4% | Reject |
 
 The lane fit used revealed worlds while excluding the eight benchmark worlds.
 It combines pickup and delivery place effects learned from quote outcomes with
