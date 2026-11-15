@@ -16,6 +16,10 @@ eight runs ranked. Changes below were evaluated against the same fixed seeds.
 | 2% discount, modeled cost ≤55% of reference | 4 | €15,067 | 4/4 | 95.6% | No score change |
 | 2% discount, modeled cost ≤75% of reference | 4 | €14,693 | 4/4 | 92.8% | Reject |
 | Driver schedule fees ×0.98 | 4 | €14,691 | 4/4 | 93.4% | Reject |
+| Direct offers disabled | 4 | €14,228 | 4/4 | 92.5% | Reject |
+| Bundling disabled | 4 | €13,239 | 3/4 | 89.9% | Reject |
+| Online quote learning disabled | 4 | €14,114 | 4/4 | 91.2% | Reject |
+| 2% discount while order pace <90% | 4 | €14,375 | 4/4 | 92.7% | Reject |
 
 The lane fit used revealed worlds while excluding the eight benchmark worlds.
 It combines pickup and delivery place effects learned from quote outcomes with
@@ -27,3 +31,9 @@ orders while keeping slightly better margin per order. These broad policy
 changes did not reproduce that combination. The next experiments should
 target incremental driver cost and capacity from bundles, direct offers, and
 dispatch timing, while measuring the 90% on-time constraint on each seed.
+
+The simplification ablations show that both direct offers and bundling earn
+their complexity: disabling direct offers reduced the four-world mean by
+€839/week; disabling bundling reduced it by €1,828/week and made one world
+unranked. Disabling online quote learning reduced the mean by €953/week.
+Keep these features enabled while tuning how they are used.
