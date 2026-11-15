@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).parent
-PY = sys.executable
+PY = str(Path(sys.executable).parent.resolve() / Path(sys.executable).name)
 
 
 def run(seed: str, level: int, params: str, starter: bool, bot: str = "bot.py") -> dict:
