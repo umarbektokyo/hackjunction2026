@@ -51,9 +51,10 @@ seven NPCs live LLMs immediately:
 | Persuasion under conflict | A proposal benefits one recipient but imposes a cost on another | Deal acceptance and whether the agent adapts its offer to the recipient's goals |
 | Deception and verification | Some NPC claims conflict with observable evidence or later actions | False-claim detection, evidence seeking, and avoidable broken agreements |
 
-For each scenario, create paired variants that isolate one factor. Keep NPC policies
-deterministic for the first benchmark version; later, add an optional LLM-opponent
-track with fixed model, prompt, sampling settings, and recorded outputs.
+For each scenario, create paired variants that isolate one factor. The deterministic
+NPC policies remain the controlled track. An optional command-driven arena now lets
+researchers attach LLMs or other agents to any seat; its model, prompt, and sampling
+settings still need to be recorded per experiment.
 
 ## Measurements
 
@@ -90,7 +91,9 @@ The previous direct `vote_target` message influence has been removed. Message te
 informational; this deterministic version measures strategic offer selection and
 recipient-side acceptance, not rhetorical persuasion. Measuring whether arguments or
 evidence change another agent's mind will require an NPC responder that can interpret
-those claims. This prototype needs evaluation before it becomes part of the judged task.
+those claims. `survivor/agent_arena.py` provides an optional JSON command protocol for
+LLM opponents while preserving the deterministic Harbor task path. Neither prototype
+has been benchmarked yet.
 
 ## Milestones
 
@@ -100,5 +103,5 @@ those claims. This prototype needs evaluation before it becomes part of the judg
 3. Compare the existing environment and prototype across capable agents and fresh
    seeds. Keep the prototype only if outcomes are repeatable, interpretable, and hard
    to game.
-4. After the deterministic version is useful, add an opt-in LLM-opponent track and
-   measure how its results vary across fixed model configurations.
+4. Compare deterministic matches with command-driven LLM-opponent matches across
+   repeated seeds and recorded model configurations; keep the tracks separate in results.

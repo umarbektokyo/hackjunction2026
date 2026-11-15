@@ -41,12 +41,15 @@ def local_runs() -> list[dict]:
         row = read_json(game_dir / "row.json")
         if not game:
             continue
+        agent_label = meta.get("ash_label", meta.get("agent_label", meta.get("model", run_dir.name)))
+        opponent_label = meta.get("opponent_label")
+        title_prefix = f"{agent_label} vs {opponent_label}" if opponent_label else agent_label
         rel = game_path.relative_to(REPO).as_posix()
         items.append({
             "id": rel,
-            "title": f"{meta.get('model', run_dir.name)} · seed {game.get('seed', '?')} · {game_dir.name}",
-            "source": "Local",
-            "model": meta.get("model", run_dir.name),
+            "title": f"{title_prefix} · seed {game.get('seed', '?')} · {game_dir.name}",
+            "source": "Arena" if meta.get("kind") == "command-agent-arena" else "Local",
+            "model": title_prefix,
             "effort": meta.get("effort"),
             "seed": game.get("seed"),
             "status": "completed" if row else ("finished game" if game.get("terminal") else "running"),

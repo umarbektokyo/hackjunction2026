@@ -15,7 +15,7 @@ import hashlib
 import json
 import random
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from .config import (DEAL_MAX_CHARS, DEALS_PER_PAIR_PER_ROUND, JURY, MESSAGE_MAX_CHARS,
                      MESSAGES_PER_CHANNEL_PER_ROUND, PERSONALITIES, RULES_VERSION,
@@ -112,10 +112,13 @@ class Event:
 
 
 class Game:
-    def __init__(self, config: GameConfig | None = None):
+    def __init__(self, config: GameConfig | None = None, *, npc_factory: Callable | None = None,
+                 snapshot_callback: Callable[["Game"], None] | None = None):
         from .npc import NPC  # local import to avoid a cycle
 
         self.cfg = config or GameConfig()
+        self.snapshot_callback = snapshot_callback
+        self._controller_actor: str | None = None
         self.slots_taken: dict[tuple[int, str], int] = {}
         self.round = 1
         self.phase = DISCUSSION
@@ -143,7 +146,8 @@ class Game:
         names = list(PERSONALITIES)
         self.keyed_rng("personalities").shuffle(names)
         self.personality = dict(zip(self.cfg.npcs, names))
-        self.npcs = {p: NPC(p, PERSONALITIES[self.personality[p]], self) for p in self.cfg.npcs}
+        make_npc = npc_factory or (lambda p, personality, game: NPC(p, personality, game))
+        self.npcs = {p: make_npc(p, PERSONALITIES[self.personality[p]], self) for p in self.cfg.npcs}
 
         self._log("game_started", None, None, players=list(self.cfg.players), you=self.cfg.evaluated)
         self._start_discussion()
@@ -171,7 +175,22 @@ class Game:
         ev = Event(len(self.events) + 1, self.round, self.phase, type_, actor,
                    sorted(set(audience)) if audience is not None else None, data)
         self.events.append(ev)
+        self._notify_snapshot()
         return ev
+
+    def _notify_snapshot(self) -> None:
+        if self.snapshot_callback:
+            self.snapshot_callback(self)
+
+    def _controller_call(self, pid: str, callback: Callable[[], Any]) -> Any:
+        previous = self._controller_actor
+        self._controller_actor = pid
+        self._notify_snapshot()
+        try:
+            return callback()
+        finally:
+            self._controller_actor = previous
+            self._notify_snapshot()
 
     def visible(self, ev: Event, pid: str) -> bool:
         return ev.audience is None or pid in ev.audience
@@ -212,7 +231,8 @@ class Game:
 
     @property
     def current_actor(self) -> str | None:
-        return self.slot_queue[0] if self.phase == DISCUSSION and self.slot_queue else None
+        queue = getattr(self, "slot_queue", [])
+        return queue[0] if self.phase == DISCUSSION and queue else None
 
     def needs_evaluated(self) -> bool:
         """True when the engine is waiting for the evaluated player."""
@@ -247,10 +267,20 @@ class Game:
                     self._start_voting()
                     continue
                 actor = self.slot_queue[0]
+                self._controller_actor = actor
+                self._notify_snapshot()
                 action = self.npcs[actor].decide_slot()
-                self._apply_slot(actor, action)
+                self._controller_actor = None
+                try:
+                    self._apply_slot(actor, action)
+                except (ActionError, KeyError, TypeError) as error:
+                    self._log("agent_action_rejected", actor, [actor],
+                              error=str(error)[:240], fallback="pass")
+                    self._apply_slot(actor, {"type": "pass"})
             elif self.phase in (VOTING, REVOTE):
                 self._resolve_votes()
+        self._controller_actor = self.cfg.evaluated if self.needs_evaluated() else None
+        self._notify_snapshot()
 
     def _consume_slot(self, actor: str, passed: bool) -> None:
         self.slot_queue.pop(0)
@@ -264,6 +294,7 @@ class Game:
                 self.slot_queue.clear()
                 self._log("discussion_ended_early", None, None)
             self.passed_in_turn = set()
+        self._notify_snapshot()
 
     def _apply_slot(self, actor: str, action: dict[str, Any]) -> dict[str, Any]:
         kind = action.get("type")
@@ -352,7 +383,7 @@ class Game:
                   ask_kind=ask_kind, ask_target=ask_target, text=deal.text)
         if to == self.cfg.evaluated:
             return {"ok": True, "deal": deal.id, "status": "pending"}
-        accepted = self.npcs[to].consider_deal(deal)
+        accepted = self._controller_call(to, lambda: self.npcs[to].consider_deal(deal))
         self._answer_deal(deal, accepted)
         return {"ok": True, "deal": deal.id, "status": deal.status}
 
@@ -384,7 +415,7 @@ class Game:
             if m == self.cfg.evaluated:
                 responses[m] = "pending"  # the evaluated player answers with respond()
                 continue
-            ok = self.npcs[m].consider_alliance(al)
+            ok = self._controller_call(m, lambda: self.npcs[m].consider_alliance(al))
             responses[m] = "accepted" if ok else "declined"
             if ok:
                 al.accepted.append(m)
@@ -432,7 +463,7 @@ class Game:
         self._log("request_made", actor, [actor, to], request=req.id, to=to, kind=kind, target=target)
         if to == self.cfg.evaluated:
             return {"ok": True, "request": req.id, "status": "pending"}
-        ok = self.npcs[to].consider_request(req)
+        ok = self._controller_call(to, lambda: self.npcs[to].consider_request(req))
         self._answer_request(req, ok)
         return {"ok": True, "request": req.id, "status": req.status,
                 **({"promise": self._last_promise_id} if ok else {})}
@@ -570,7 +601,11 @@ class Game:
         # NPC ballots are fixed now, before seeing the evaluated player's ballot (simultaneous voting).
         for p in self.alive:
             if p in self.npcs:
+                self._controller_actor = p
+                self._notify_snapshot()
                 self.ballots[p] = self.npcs[p].decide_vote(list(self.alive))
+        self._controller_actor = None
+        self._notify_snapshot()
 
     def _cast_vote(self, me: str, target: str) -> dict[str, Any]:
         if self.phase == VOTING:
@@ -610,7 +645,11 @@ class Game:
             self._log("revote_started", None, None, tied=leaders, voters=self.revote_voters)
             for p in self.revote_voters:
                 if p in self.npcs:
+                    self._controller_actor = p
+                    self._notify_snapshot()
                     self.ballots[p] = self.npcs[p].decide_vote(leaders, revote=True)
+            self._controller_actor = None
+            self._notify_snapshot()
             if not self.revote_voters:
                 self._eliminate(self._tiebreak(leaders), {})
             return
@@ -798,7 +837,7 @@ class Game:
             "round": self.round,
             "phase": self.phase,
             "alive": list(self.alive),
-            "current_actor": self.current_actor,
+            "current_actor": self._controller_actor or self.current_actor,
             "personalities": self.personality,
             "terminal": self.terminal,
             "winner": self.winner,
@@ -810,12 +849,17 @@ class Game:
             "ballots": self.ballot_history,
             "promises": [asdict(p) for p in self.promises.values()],
             "deals": [asdict(d) for d in self.deals.values()],
-            "npc_private_state": {pid: {"goal": npc.goal,
-                                        "reservation_slack": npc.reservation_slack,
-                                        "trust": dict(npc.trust), "ties": dict(npc.ties),
-                                        "kept_to_me": dict(npc.kept_to_me),
-                                        "broken_to_me": dict(npc.broken_to_me)}
-                                  for pid, npc in self.npcs.items()},
+            "opponent_controllers": {pid: type(npc).__name__ for pid, npc in self.npcs.items()},
+            "npc_private_state": {pid: {
+                key: (dict(value) if isinstance(value, dict) else value)
+                for key in ("goal", "reservation_slack", "trust", "ties", "kept_to_me", "broken_to_me")
+                if (value := getattr(npc, key, None)) is not None
+            } for pid, npc in self.npcs.items()},
+            "evaluated_private_state": {
+                key: getattr(self.evaluated_controller, key)
+                for key in ("goal", "reservation_slack")
+                if getattr(getattr(self, "evaluated_controller", None), key, None) is not None
+            },
             "alliances": [asdict(a) for a in self.alliances.values()],
             "events": [asdict(e) for e in self.events],
             "evaluated_actions": self.actions_log,
@@ -838,6 +882,10 @@ class Game:
             "deals_proposed_accepted": sum(d.status == "accepted" for d in deals_made),
             "deals_received": len(deals_received),
             "deals_received_accepted": sum(d.status == "accepted" for d in deals_received),
+            "controller_errors": sum(e.type == "controller_error" and e.actor == pid for e in self.events),
+            "controller_fallbacks": sum(e.type in ("controller_fallback", "controller_action_rejected",
+                                                     "agent_action_rejected") and e.actor == pid
+                                        for e in self.events),
             "actions": sum(self.activity[pid]),
             "rounds_survived": (self.eliminated.index(pid) + 1) if pid in self.eliminated else self.round,
             "jurors_i_voted_out": sum(1 for j in self.eliminated if pid in self.voted_out_by.get(j, [])),

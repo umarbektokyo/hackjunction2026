@@ -75,6 +75,9 @@ function eventText(event) {
     case "eliminated": return [`${event.player} was eliminated`, `Round ${event.round}`];
     case "jury_voted": return [`${event.winner} won the jury vote`,
       Object.entries(event.count || {}).map(([name, n]) => `${name}: ${n}`).join(" · ")];
+    case "controller_error": return [`${actor}'s agent command failed`, event.error || event.decision || "Fallback used"];
+    case "controller_fallback": return [`${actor} used a safe fallback`, `Decision: ${event.decision}`];
+    case "controller_action_rejected": return [`${actor}'s action was rejected`, event.error || "Safe fallback used"];
     default: return [event.type.replaceAll("_", " "), event.player || event.reason || ""];
   }
 }
