@@ -48,7 +48,7 @@ seven NPCs live LLMs immediately:
 | Public negotiation | Several players share incentives but have different reservation values | Agreement rate, joint utility, evaluated player's utility |
 | Private information | Players receive different facts about a threat or coalition | Correct inferences, leakage, decisions based on who knows each fact |
 | Reliability calibration | NPCs have seeded high, mixed, or low commitment reliability | Reliance on reliable players; trust updates after observed outcomes |
-| Persuasion under conflict | A proposal benefits one recipient but imposes a cost on another | Recipient response and whether the agent adapts its argument or offer |
+| Persuasion under conflict | A proposal benefits one recipient but imposes a cost on another | Deal acceptance and whether the agent adapts its offer to the recipient's goals |
 | Deception and verification | Some NPC claims conflict with observable evidence or later actions | False-claim detection, evidence seeking, and avoidable broken agreements |
 
 For each scenario, create paired variants that isolate one factor. Keep NPC policies
@@ -77,23 +77,28 @@ changed the final coalition and outcome.
 
 ## Prototype decisions
 
-The current engine prototype adds one public and one private message per player per
-round and records audience visibility. Keep those useful limits and logs. Rework the
-prototype's explicit `vote_target` signal before benchmarking: it currently gives
-message content a direct, deterministic ballot influence. Replace it with proposals
-or offers that NPCs may accept or reject using their goals, reservation values, trust,
-and information. The message itself should persuade through those decisions, not act
-as a hidden vote multiplier.
+The engine prototype supports one public and one private message per player per round,
+and records audience visibility. It now also supports a private conditional deal: the
+proposer offers one vote commitment and asks for one in return. Neither promise exists
+unless the recipient accepts. NPCs have a seeded private `remove` or `protect` goal
+about another player, plus a seeded reservation slack. They accept when the utility of
+the requested commitment plus the trust-weighted value of the offer meets their
+reservation value. The goal, trust state, and offer evaluation are recorded in the
+spectator log for analysis, while remaining hidden from the evaluated player.
+
+The previous direct `vote_target` message influence has been removed. Message text is
+informational; this deterministic version measures strategic offer selection and
+recipient-side acceptance, not rhetorical persuasion. Measuring whether arguments or
+evidence change another agent's mind will require an NPC responder that can interpret
+those claims. This prototype needs evaluation before it becomes part of the judged task.
 
 ## Milestones
 
-1. Define a small NPC goal/reservation-value schema and the first paired negotiation
-   and trust-calibration scenarios.
-2. Replace direct vote-target influence with recipient-side proposal/offer decisions;
-   preserve public/private visibility and a complete auditable event log.
-3. Add capability diagnostics and integrity baselines to the verifier.
-4. Compare the existing environment and prototype across capable agents and fresh
+1. Evaluate the new NPC goal/reservation-value schema and reciprocal deal mechanic on
+   paired negotiation and trust-calibration scenarios.
+2. Add capability diagnostics and integrity baselines to the verifier.
+3. Compare the existing environment and prototype across capable agents and fresh
    seeds. Keep the prototype only if outcomes are repeatable, interpretable, and hard
    to game.
-5. After the deterministic version is useful, add an opt-in LLM-opponent track and
+4. After the deterministic version is useful, add an opt-in LLM-opponent track and
    measure how its results vary across fixed model configurations.

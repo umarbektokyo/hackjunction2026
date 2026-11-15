@@ -4,12 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-RULES_VERSION = "1.1"
+RULES_VERSION = "1.2"
 
-# Communication is limited by channel and round. Message bodies are flavor and
-# information; an explicit vote_target is the deterministic signal NPCs weigh.
+# Communication is limited by channel and round. Messages share information;
+# reciprocal deals carry explicit commitments that NPCs evaluate strategically.
 MESSAGES_PER_CHANNEL_PER_ROUND = 1
 MESSAGE_MAX_CHARS = 240
+DEAL_MAX_CHARS = 240
+DEALS_PER_PAIR_PER_ROUND = 1
+NPC_GOAL_WEIGHT = 0.6
+NPC_RESERVATION_SLACK = (0.2, 0.8)
 
 PLAYER_NAMES = ["ash", "bea", "cyd", "dex", "eve", "fin", "gil", "hal"]
 EVALUATED = "ash"

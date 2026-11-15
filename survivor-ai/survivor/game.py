@@ -17,8 +17,9 @@ import random
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from .config import (JURY, MESSAGE_MAX_CHARS, MESSAGES_PER_CHANNEL_PER_ROUND,
-                     PERSONALITIES, RULES_VERSION, TRUST, GameConfig)
+from .config import (DEAL_MAX_CHARS, DEALS_PER_PAIR_PER_ROUND, JURY, MESSAGE_MAX_CHARS,
+                     MESSAGES_PER_CHANNEL_PER_ROUND, PERSONALITIES, RULES_VERSION,
+                     TRUST, GameConfig)
 
 DISCUSSION, VOTING, REVOTE, FINISHED = "discussion", "voting", "revote", "finished"
 PROMISE_KINDS = ("spare", "vote_for")
@@ -30,7 +31,10 @@ def rules_hash(cfg: GameConfig) -> str:
     blob = json.dumps({
         "version": RULES_VERSION, "cfg": {k: v for k, v in asdict(cfg).items() if k != "seed"},
         "communication": {"messages_per_channel_per_round": MESSAGES_PER_CHANNEL_PER_ROUND,
-                           "message_max_chars": MESSAGE_MAX_CHARS},
+                           "message_max_chars": MESSAGE_MAX_CHARS, "deal_max_chars": DEAL_MAX_CHARS,
+                           "deals_per_pair_per_round": DEALS_PER_PAIR_PER_ROUND},
+        "social_model": {"goal_weight": config.NPC_GOAL_WEIGHT,
+                         "reservation_slack": config.NPC_RESERVATION_SLACK},
         "personalities": {k: asdict(v) for k, v in PERSONALITIES.items()},
         "trust": asdict(TRUST), "jury": asdict(JURY),
         "threat_scale": config.THREAT_SCALE, "outsider_w": config.OUTSIDER_W,
@@ -81,6 +85,22 @@ class Promise:
 
 
 @dataclass
+class Deal:
+    """Conditional exchange: each side promises one vote commitment if accepted."""
+
+    id: str
+    frm: str
+    to: str
+    offer_kind: str
+    offer_target: str
+    ask_kind: str
+    ask_target: str
+    text: str
+    round: int
+    status: str = "pending"  # pending | accepted | declined | expired
+
+
+@dataclass
 class Event:
     seq: int
     round: int
@@ -104,6 +124,7 @@ class Game:
         self.alliances: dict[str, Alliance] = {}
         self.requests: dict[str, Request] = {}
         self.promises: dict[str, Promise] = {}
+        self.deals: dict[str, Deal] = {}
         self.events: list[Event] = []
         self.activity: dict[str, list[int]] = {p: [] for p in self.cfg.players}
         self.ballots: dict[str, str] = {}
@@ -210,6 +231,7 @@ class Game:
 
     def pending_for(self, pid: str) -> list[str]:
         return [r.id for r in self.requests.values() if r.to == pid and r.status == "pending"] + \
+               [d.id for d in self.deals.values() if d.to == pid and d.status == "pending"] + \
                [a.id for a in self.alliances.values()
                 if a.status == "pending" and pid in a.members and pid not in a.accepted]
 
@@ -258,6 +280,8 @@ class Game:
             result = self._promise(actor, action["to"], action["kind"], action["target"])
         elif kind == "message":
             result = self._send_message(actor, action)
+        elif kind == "propose_deal":
+            result = self._propose_deal(actor, action)
         elif kind == "leave_alliance":
             result = self._leave_alliance(actor, action["alliance_id"])
         else:
@@ -283,9 +307,6 @@ class Game:
                    and e.data.get("channel") == channel for e in self.events)
         if sent >= MESSAGES_PER_CHANNEL_PER_ROUND:
             raise ActionError(f"you have already sent a {channel} message this round")
-        vote_target = action.get("vote_target") or None
-        if vote_target is not None:
-            self._check_target(actor, vote_target)
         if channel == "public":
             recipient = None
             audience = None
@@ -296,8 +317,56 @@ class Game:
             self._check_target(actor, recipient)
             audience = [actor, recipient]
         self._log("message_sent", actor, audience, channel=channel, to=recipient,
-                  text=text.strip(), vote_target=vote_target)
+                  text=text.strip())
         return {"ok": True, "channel": channel, "to": recipient}
+
+    def _propose_deal(self, actor: str, action: dict[str, Any]) -> dict[str, Any]:
+        to = action["to"]
+        self._check_target(actor, to)
+        offers_this_pair = sum(d.frm == actor and d.to == to and d.round == self.round
+                               for d in self.deals.values())
+        if offers_this_pair >= DEALS_PER_PAIR_PER_ROUND:
+            raise ActionError("you have already proposed a deal to this player this round")
+        offer_kind, offer_target = action["offer_kind"], action["offer_target"]
+        ask_kind, ask_target = action["ask_kind"], action["ask_target"]
+        if offer_kind not in PROMISE_KINDS or ask_kind not in PROMISE_KINDS:
+            raise ActionError(f"deal kinds must be one of {PROMISE_KINDS}")
+        self._check_target(actor, offer_target)
+        self._check_target(to, ask_target)
+        if offer_kind == "vote_for" and offer_target == actor:
+            raise ActionError("you cannot promise to vote for yourself")
+        if offer_kind == "spare" and offer_target != to:
+            raise ActionError("a spare offer must promise not to vote for the recipient")
+        if ask_kind == "vote_for" and ask_target == to:
+            raise ActionError("a player cannot promise to vote for themselves")
+        if ask_kind == "spare" and ask_target != actor:
+            raise ActionError("a spare request must ask the recipient not to vote for you")
+        text = action.get("text", "")
+        if not isinstance(text, str) or len(text) > DEAL_MAX_CHARS:
+            raise ActionError(f"deal text must be at most {DEAL_MAX_CHARS} characters")
+        deal = Deal(self._id("D"), actor, to, offer_kind, offer_target,
+                    ask_kind, ask_target, text.strip(), self.round)
+        self.deals[deal.id] = deal
+        self._log("deal_proposed", actor, [actor, to], deal=deal.id, to=to,
+                  offer_kind=offer_kind, offer_target=offer_target,
+                  ask_kind=ask_kind, ask_target=ask_target, text=deal.text)
+        if to == self.cfg.evaluated:
+            return {"ok": True, "deal": deal.id, "status": "pending"}
+        accepted = self.npcs[to].consider_deal(deal)
+        self._answer_deal(deal, accepted)
+        return {"ok": True, "deal": deal.id, "status": deal.status}
+
+    def _answer_deal(self, deal: Deal, accepted: bool) -> None:
+        deal.status = "accepted" if accepted else "declined"
+        self._log("deal_" + deal.status, deal.to, [deal.frm, deal.to], deal=deal.id,
+                  frm=deal.frm, offer_kind=deal.offer_kind, offer_target=deal.offer_target,
+                  ask_kind=deal.ask_kind, ask_target=deal.ask_target)
+        for pid, other in ((deal.frm, deal.to), (deal.to, deal.frm)):
+            if pid in self.npcs:
+                self.npcs[pid].on_answer(other, accepted)
+        if accepted:
+            self._make_promise(deal.frm, deal.to, deal.offer_kind, deal.offer_target, via=deal.id)
+            self._make_promise(deal.to, deal.frm, deal.ask_kind, deal.ask_target, via=deal.id)
 
     def _propose_alliance(self, actor: str, members: list[str]) -> dict[str, Any]:
         others = sorted(set(m for m in members if m != actor))
@@ -422,7 +491,8 @@ class Game:
             result = self._respond(me, action["item_id"], bool(action["accept"]))
         elif kind == "vote":
             result = self._cast_vote(me, action["target"])
-        elif kind in ("propose_alliance", "request", "promise", "message", "leave_alliance", "pass"):
+        elif kind in ("propose_alliance", "request", "promise", "message", "propose_deal",
+                      "leave_alliance", "pass"):
             if self.phase != DISCUSSION:
                 raise ActionError(f"{kind} is only allowed during discussion (phase is {self.phase})")
             if not self.slot_queue and kind == "pass":
@@ -451,6 +521,12 @@ class Game:
                 raise ActionError("target is no longer alive")
             self._answer_request(req, accept)
             return {"ok": True, "request": item_id, "status": req.status}
+        if item_id in self.deals:
+            deal = self.deals[item_id]
+            if deal.to != me or deal.status != "pending":
+                raise ActionError(f"deal {item_id} is not waiting for your answer")
+            self._answer_deal(deal, accept)
+            return {"ok": True, "deal": item_id, "status": deal.status}
         if item_id in self.alliances:
             al = self.alliances[item_id]
             if me not in al.members or al.status != "pending" or me in al.accepted:
@@ -474,6 +550,13 @@ class Game:
                 self._log("request_expired", None, [req.frm, req.to], request=req.id)
                 if req.frm in self.npcs:
                     self.npcs[req.frm].on_answer(req.to, False)
+        for deal in self.deals.values():
+            if deal.status == "pending":
+                deal.status = "expired"
+                self._log("deal_expired", None, [deal.frm, deal.to], deal=deal.id)
+                for pid, other in ((deal.frm, deal.to), (deal.to, deal.frm)):
+                    if pid in self.npcs:
+                        self.npcs[pid].on_answer(other, False)
         for al in self.alliances.values():
             if al.status == "pending":
                 al.status = "rejected"
@@ -667,6 +750,10 @@ class Game:
         obs["waiting_for_your_answer"] = [
             *({"id": r.id, "type": "request", "from": r.frm, "kind": r.kind, "target": r.target}
               for r in self.requests.values() if r.to == pid and r.status == "pending"),
+            *({"id": d.id, "type": "deal", "from": d.frm, "offer_kind": d.offer_kind,
+               "offer_target": d.offer_target, "ask_kind": d.ask_kind,
+               "ask_target": d.ask_target, "text": d.text}
+              for d in self.deals.values() if d.to == pid and d.status == "pending"),
             *({"id": al.id, "type": "alliance", "from": al.proposer, "members": al.members}
               for al in self.alliances.values()
               if al.status == "pending" and pid in al.members and pid not in al.accepted),
@@ -718,6 +805,13 @@ class Game:
             "placement": self.placement(),
             "ballots": self.ballot_history,
             "promises": [asdict(p) for p in self.promises.values()],
+            "deals": [asdict(d) for d in self.deals.values()],
+            "npc_private_state": {pid: {"goal": npc.goal,
+                                        "reservation_slack": npc.reservation_slack,
+                                        "trust": dict(npc.trust), "ties": dict(npc.ties),
+                                        "kept_to_me": dict(npc.kept_to_me),
+                                        "broken_to_me": dict(npc.broken_to_me)}
+                                  for pid, npc in self.npcs.items()},
             "alliances": [asdict(a) for a in self.alliances.values()],
             "events": [asdict(e) for e in self.events],
             "evaluated_actions": self.actions_log,
@@ -728,12 +822,18 @@ class Game:
         pid = pid or self.cfg.evaluated
         mine = [p for p in self.promises.values() if p.promiser == pid]
         to_me = [p for p in self.promises.values() if p.promisee == pid]
+        deals_made = [d for d in self.deals.values() if d.frm == pid]
+        deals_received = [d for d in self.deals.values() if d.to == pid]
         return {
             "promises_made": len(mine),
             "promises_kept": sum(p.status == "kept" for p in mine),
             "promises_broken": sum(p.status == "broken" for p in mine),
             "promises_to_me_broken": sum(p.status == "broken" for p in to_me),
             "promises_to_me_kept": sum(p.status == "kept" for p in to_me),
+            "deals_proposed": len(deals_made),
+            "deals_proposed_accepted": sum(d.status == "accepted" for d in deals_made),
+            "deals_received": len(deals_received),
+            "deals_received_accepted": sum(d.status == "accepted" for d in deals_received),
             "actions": sum(self.activity[pid]),
             "rounds_survived": (self.eliminated.index(pid) + 1) if pid in self.eliminated else self.round,
             "jurors_i_voted_out": sum(1 for j in self.eliminated if pid in self.voted_out_by.get(j, [])),

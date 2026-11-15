@@ -13,10 +13,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from . import config
-from .config import JURY, TRUST, Personality
+from .config import (JURY, NPC_GOAL_WEIGHT, NPC_RESERVATION_SLACK, TRUST,
+                     Personality)
 
 if TYPE_CHECKING:
-    from .game import Alliance, Game, Promise, Request
+    from .game import Alliance, Deal, Game, Promise, Request
 
 
 class NPC:
@@ -33,6 +34,12 @@ class NPC:
         self.broken_to_me: dict[str, int] = {o: 0 for o in self.trust}
         self.voted_me_out: list[str] = []
         self.ties: dict[str, float] = {o: 0.0 for o in self.trust}
+        others = [o for o in game.cfg.players if o != pid]
+        goal_rng = game.keyed_rng("npc-goal", pid)
+        self.goal = {"kind": goal_rng.choice(("remove", "protect")),
+                     "target": goal_rng.choice(others), "weight": NPC_GOAL_WEIGHT}
+        low, high = NPC_RESERVATION_SLACK
+        self.reservation_slack = low + (high - low) * game.rand("npc-reservation", pid)
         self._asked: set[tuple[int, str, str]] = set()  # (round, kind, key) already asked
         self._proposed: set[tuple[str, ...]] = set()
 
@@ -59,23 +66,78 @@ class NPC:
             s -= p.loyalty
         s -= p.trust_w * (self.trust[t] - 0.5) * 2
         s += config.OUTSIDER_W / (1 + self.ties[t])
+        if t == self.goal["target"]:
+            s += self.goal["weight"] if self.goal["kind"] == "remove" else -self.goal["weight"]
         s += p.retaliation * 0.8 * min(2, self.broken_to_me[t])
         s += p.consensus * 0.4 * self._requests_for(t)
-        # Messages influence only players who can actually see them. Structured
-        # vote_target avoids making game outcomes depend on text parsing.
-        for ev in self.g.events:
-            if (ev.type == "message_sent" and ev.round == self.g.round
-                    and ev.actor != self.id and ev.data.get("vote_target") == t
-                    and self.g.visible(ev, self.id)):
-                speaker = ev.actor
-                if speaker in self.trust:
-                    s += p.consensus * (0.5 + self.trust[speaker])
         for pr in self._my_promises():
             if pr.kind == "vote_for" and pr.target == t:
                 s += p.honesty * 2
             if pr.kind == "spare" and pr.target == t:
                 s -= p.honesty * 2
         return s
+
+    def consider_deal(self, deal: "Deal") -> bool:
+        """Accept only if the requested commitment meets my reservation value
+        after accounting for the offered commitment and trust in the proposer."""
+        trust = self.trust[deal.frm]
+        trust_too_low = trust < self.p.accept - 0.3
+        candidates = [o for o in self.g.alive if o != self.id]
+        best_utility = max(self.score(o) for o in candidates)
+        if deal.ask_kind == "vote_for":
+            requested_utility = self.score(deal.ask_target)
+        else:
+            remaining = [o for o in candidates if o != deal.ask_target]
+            requested_utility = max((self.score(o) for o in remaining), default=float("-inf"))
+
+        # A promise already made this round takes priority over a conflicting deal.
+        commitment_conflict = False
+        for promise in self._my_promises():
+            if promise.kind == "vote_for" and deal.ask_kind == "vote_for" \
+                    and promise.target != deal.ask_target:
+                commitment_conflict = True
+            if promise.kind == "spare" and deal.ask_kind == "vote_for" \
+                    and promise.target == deal.ask_target:
+                commitment_conflict = True
+            if promise.kind == "vote_for" and deal.ask_kind == "spare" \
+                    and promise.target == deal.ask_target:
+                commitment_conflict = True
+
+        if deal.offer_kind == "spare" and deal.offer_target == self.id:
+            offered_utility = 0.5
+        elif deal.offer_kind == "vote_for" and self.goal["kind"] == "remove" \
+                and deal.offer_target == self.goal["target"]:
+            offered_utility = 0.5
+        elif deal.offer_kind == "spare" and self.goal["kind"] == "protect" \
+                and deal.offer_target == self.goal["target"]:
+            offered_utility = 0.35
+        else:
+            offered_utility = 0.0
+
+        # Penalize only contradictions visible to me; promises between other
+        # players remain private and must not leak into this decision.
+        visible_conflict = any(
+            pr.promiser == deal.frm and pr.promisee == self.id
+            and pr.round == self.g.round and pr.status == "open"
+            and ((deal.offer_kind == "vote_for" and
+                  ((pr.kind == "vote_for" and pr.target != deal.offer_target)
+                   or (pr.kind == "spare" and pr.target == deal.offer_target)))
+                 or (deal.offer_kind == "spare" and pr.kind == "vote_for"
+                     and pr.target == deal.offer_target))
+            for pr in self.g.promises.values())
+        if visible_conflict:
+            offered_utility = -1.0
+
+        reservation_value = best_utility - self.reservation_slack
+        accepted = (not trust_too_low and not visible_conflict and not commitment_conflict and
+                    requested_utility + trust * offered_utility >= reservation_value)
+        self.g._log("deal_evaluated", self.id, [self.id], deal=deal.id,
+                    requested_utility=requested_utility, offered_utility=offered_utility,
+                    reservation_value=reservation_value, proposer_trust=trust,
+                    trust_too_low=trust_too_low, visible_conflict=visible_conflict,
+                    commitment_conflict=commitment_conflict,
+                    accepted=accepted)
+        return accepted
 
     def preferred_target(self, candidates: list[str] | None = None) -> str:
         cands = [c for c in (candidates or self.g.alive) if c != self.id]
@@ -103,14 +165,20 @@ class NPC:
         target = self.preferred_target()
         if not self._sent_message("public"):
             return {"type": "message", "channel": "public",
-                    "text": f"I think {target} is the biggest threat this round.",
-                    "vote_target": target}
+                    "text": f"I think {target} is the biggest threat this round."}
         if not self._sent_message("private"):
             recipient = by_trust[0]
             if recipient != target:
                 return {"type": "message", "channel": "private", "to": recipient,
-                        "text": f"I trust you. I plan to vote for {target}.",
-                        "vote_target": target}
+                        "text": f"I trust you. I plan to vote for {target}."}
+
+        for recipient in by_trust:
+            if recipient != target and not any(d.round == g.round and d.frm == self.id
+                                               and d.to == recipient for d in g.deals.values()):
+                return {"type": "propose_deal", "to": recipient,
+                        "offer_kind": "vote_for", "offer_target": target,
+                        "ask_kind": "vote_for", "ask_target": target,
+                        "text": f"Let's vote together for {target}."}
 
         # 2. Build a majority against my preferred target.
         for o in by_trust:

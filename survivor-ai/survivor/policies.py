@@ -112,6 +112,8 @@ class Reference:
                 (self.kept if t == "promise_kept" else self.broken)[e["by"]] += 1
             elif t == "request_declined" and e.get("frm") == me:
                 self.declined[e["by"]] += 1
+            elif t == "deal_declined" and e.get("frm") == me:
+                self.declined[e["by"]] += 1
             elif t == "request_made" and e.get("to") == me and e.get("kind") == "vote_for":
                 self.heat[(e["round"], e["target"])] += 1
         self.seen = obs["last_seq"]
@@ -165,6 +167,12 @@ class Reference:
             if item["type"] == "alliance":
                 ok = (len([a for a in obs["your_alliances"] if a["status"] == "active"]) < 1
                       and self.broken[item["from"]] == 0)
+                return {"type": "respond", "item_id": item["id"], "accept": ok}
+            if item["type"] == "deal":
+                if item["ask_kind"] == "vote_for":
+                    ok = item["ask_target"] == target
+                else:
+                    ok = item["ask_target"] != target
                 return {"type": "respond", "item_id": item["id"], "accept": ok}
             if item["kind"] == "spare":
                 ok = item["from"] != target
@@ -252,6 +260,11 @@ class Coalition(Reference):
             if item["type"] == "alliance":
                 ok = self.broken[item["from"]] == 0 and item["from"] != target \
                     and not any(a["status"] == "active" for a in obs["your_alliances"])
+            elif item["type"] == "deal":
+                if item["ask_kind"] == "vote_for":
+                    ok = item["ask_target"] == target
+                else:
+                    ok = item["ask_target"] != target
             elif item["kind"] == "spare":
                 ok = item["from"] != target
             else:

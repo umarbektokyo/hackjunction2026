@@ -101,20 +101,31 @@ def offer_promise(to: str, kind: Literal["spare", "vote_for"], target: str = "")
 
 @server.tool()
 def send_message(channel: Literal["public", "private"], text: str,
-                 to: str = "", vote_target: str = "") -> dict[str, Any]:
+                 to: str = "") -> dict[str, Any]:
     """Uses your slot. Send one public broadcast or one private message per round.
-    Private messages are visible only to you and the recipient. Messages can include
-    an optional vote_target to signal whom you want people who see the message to vote for.
-    Text is limited to 240 characters."""
-    return _act({"type": "message", "channel": channel, "text": text,
-                 "to": to, "vote_target": vote_target})
+    Private messages are visible only to you and the recipient. Messages share
+    information; to make a binding proposal, use propose_deal. Text is limited to 240 characters."""
+    return _act({"type": "message", "channel": channel, "text": text, "to": to})
+
+
+@server.tool()
+def propose_deal(to: str, offer_kind: Literal["spare", "vote_for"], offer_target: str,
+                 ask_kind: Literal["spare", "vote_for"], ask_target: str,
+                 text: str = "") -> dict[str, Any]:
+    """Uses your slot. Privately offer one vote commitment in exchange for a
+    commitment from `to`. Both promises are created only if accepted; otherwise
+    neither side is bound. `spare` names someone you will not vote for, and
+    `vote_for` names the player you will vote for. The recipient may accept or decline."""
+    return _act({"type": "propose_deal", "to": to, "offer_kind": offer_kind,
+                 "offer_target": offer_target, "ask_kind": ask_kind,
+                 "ask_target": ask_target, "text": text})
 
 
 @server.tool()
 def respond(item_id: str, accept: bool) -> dict[str, Any]:
-    """Does not use your slot. Accept or decline an alliance proposal or promise request
-    listed under waiting_for_your_answer. Accepting a request creates a promise from you.
-    Unanswered items are declined when voting starts."""
+    """Does not use your slot. Accept or decline an alliance, promise request, or
+    conditional deal listed under waiting_for_your_answer. Accepting a deal creates
+    both promised commitments. Unanswered items expire when voting starts."""
     return _act({"type": "respond", "item_id": item_id, "accept": accept})
 
 
