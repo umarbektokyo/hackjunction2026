@@ -8,7 +8,7 @@
     logs/ml_steps.csv.gz    one row per gig and fee step (the time a gig spent at one fee): the hazard data
                             behind P(book within t | fee / typical, features)
 
-Run: ../.venv/bin/python ml_tables.py
+Run: "$SPREAD_PYTHON" ml_tables.py
 """
 from __future__ import annotations
 

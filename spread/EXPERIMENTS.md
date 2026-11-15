@@ -48,3 +48,37 @@ four-seed baseline (€14,523/week, 97.2% mean on time, worst 95.6%). The 1.5×
 window scored €14,054/week (−€469), 96.5% mean on time, worst 93.4%. The 2×
 window scored €14,407/week (−€116), 96.7% mean on time, worst 93.4%. Neither
 added consistent order volume. Keep the existing 22–32 minute window.
+
+## Within-3-days steering discount
+
+Dealers took `within_3_days` on only ~4 of ~180 weekly requests where we quoted it, because its price was
+capped just €2 under `next_day`. `d3_discount` (default 0, off) prices it at `next_day × (1 − d)` (floor: cost
++ €5) to steer dealers to the slower, cheaper-to-serve option. Against the 8-seed baseline (€15,364/week):
+
+| d3_discount | bench-1…4 | bench-5…8 | 8-seed mean | Worst on time | Decision |
+|---:|---:|---:|---:|---:|---|
+| 0 (baseline) | €14,523 | €16,205 | €15,364 | 94.3% | keep |
+| 0.05 | €14,208 | €15,863 | €15,036 | 94.0% | Reject |
+| 0.08 | €14,813 | €15,144 | €14,978 | 91.7% | Reject |
+| 0.12 | €13,727 | €15,575 | €14,651 | 91.1% | Reject |
+
+The 0.08 run looked like +€290 on bench-1…4 and then lost €1,061 on bench-5…8. Any small policy change
+moves a single seed by ±€1,000, so a 4-seed mean has a noise floor of about ±€500. Most single-split
+"Reject" rows above are within that noise.
+
+## 32-seed paired sweep (Sun 15 Nov, 06:06–06:59)
+
+`bot4.py` on `bench-1`…`bench-32`, each setting against the same seeds; Δ is the mean per-seed difference
+from the baseline with its standard error. All 32 weeks ranked in every setting.
+
+| Setting | Mean €/week | Paired Δ | Better on | Worst on time |
+|---|---:|---:|---:|---:|
+| Baseline | €15,156 | | | 93.4% |
+| `late_threshold_mult` 1.15 | €15,022 | −€134 ± 109 | 16/32 | 93.5% |
+| `d3_discount` 0.05 | €15,159 | +€3 ± 90 | 17/32 | 93.2% |
+| `quote_mult` 0.99 | €15,254 | +€98 ± 196 | 18/32 | 93.4% |
+| `target_mult` 1.12 | €15,065 | −€91 ± 149 | 17/32 | 93.3% |
+| `quote_mult` 1.01 | €14,976 | −€180 ± 135 | 11/32 | 93.6% |
+
+No setting beats the baseline by more than its noise. The current RoutePulse defaults sit at a local optimum
+for these knobs; quote prices of 0.99–1.00× are best, and 1.01× is worse.

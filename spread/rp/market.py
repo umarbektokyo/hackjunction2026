@@ -552,7 +552,8 @@ class PricingEngine:
                         if self.level >= 7 else 0)
         surplus = surplus_frac * max(0, normal_scale - ev["trueCostCents"])
         eff_cost = ev["baseEffectiveCostCents"] + surplus + anti_retal
-        floor = (max(650, jround(request["referenceFeeCents"] * 0.16)) if (in_hours and self.level == 8 and est.price_war_today) else 450)
+        normal_floor = max(0, jround(self.params.get("min_quote_floor_cents", 450)))
+        floor = (max(650, jround(request["referenceFeeCents"] * 0.16)) if (in_hours and self.level == 8 and est.price_war_today) else normal_floor)
         min_hard = jceil(max(ev["trueCostCents"] + floor, eff_cost + 120))
         max_search = max(min_hard + 500, jround(target_scale * 1.42))
         best_price, best_obj, best_wp = 0, -1, 0
@@ -621,7 +622,12 @@ class PricingEngine:
             elif nd_ev:
                 equal_margin = jround(prices["next_day"] - max(150, nd_ev["trueCostCents"] - d3_ev["trueCostCents"] + 150))
                 capped = min(max(d3_opt["priceCents"], equal_margin), prices["next_day"] - 200)
-                if (capped - d3_ev["trueCostCents"] >= prices["next_day"] - nd_ev["trueCostCents"] - 200
+                d3_disc = self.params.get("d3_discount", 0.0)
+                if d3_disc > 0:
+                    # steer the dealer to the slow option, which is cheaper to serve (bundles, cheaper drivers)
+                    capped = min(capped, max(jround(prices["next_day"] * (1 - d3_disc)),
+                                             jceil(d3_ev["trueCostCents"] + 500)))
+                if ((d3_disc > 0 or capped - d3_ev["trueCostCents"] >= prices["next_day"] - nd_ev["trueCostCents"] - 200)
                         and capped - d3_ev["trueCostCents"] >= 500):
                     prices["within_3_days"] = capped
                     comp_opts.append("within_3_days")

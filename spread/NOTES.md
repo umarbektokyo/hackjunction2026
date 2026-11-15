@@ -28,7 +28,7 @@ Start a new session from this file instead of re-reading the history. Last updat
 
 ## Live play: final, test finals, ranking runs (`bot2.py`)
 
-- **Final / test final:** `cd spread && . ./env.sh && nohup ../.venv/bin/python bot2.py --final > logs/final-$(date +%H%M).log 2>&1 &`.
+- **Final / test final:** `cd spread && . ./env.sh && nohup "$SPREAD_PYTHON" bot2.py --final > logs/final-$(date +%H%M).log 2>&1 &`.
   It waits until the final is set, then rebuilds from `snapshot()` and `events()` (`rejoin`), reads `world.stream(idle=1.0)`
   and sends its outbox with `act`, quotes first. After a lost connection or an error it rebuilds and goes on; a 403/404
   (world gone) stops it. **Restart = run the same command again**: it restores its learned state (market filter, dealer
@@ -80,10 +80,10 @@ behind switches, `fee_model` default 0; `pace.py` (real-time practice world, `--
 `ml_tables.py` labels bot2 weeks with their real fee policy.
 
 **To do next (in order):**
-1. Test final 1, Sat 14:00 Helsinki (set 13:45): from `spread/`, `. ./env.sh && nohup ../.venv/bin/python bot2.py --final > logs/final-test1.log 2>&1 &`
+1. Test final 1, Sat 14:00 Helsinki (set 13:45): from `spread/`, `. ./env.sh && nohup "$SPREAD_PYTHON" bot2.py --final > logs/final-test1.log 2>&1 &`
    (start any time before; it waits). Mid-run, kill it (`pkill -f "bot2.py --final"`) and run the same command again
    to test the restart. Run nothing else on the key meanwhile. Test final 2 at 20:00, same command.
-2. Ranking round (09:00, 12:00, ...): 5 runs one at a time: `for i in 1 2 3 4 5; do ../.venv/bin/python bot2.py --board --quiet; done`
+2. Ranking round (09:00, 12:00, ...): 5 runs one at a time: `for i in 1 2 3 4 5; do "$SPREAD_PYTHON" bot2.py --board --quiet; done`
    (`--board` is untested on a real ranking run; check the first run's log).
 3. Pricing for short lanes / price of lateness, benchmarked with `./ml_bench.sh 'name|bot2.py|1|{json}'`.
 4. Sunday: register before 07:30, final 08:00 (`bot2.py --final`), code link + hash by 10:00.
@@ -146,3 +146,93 @@ Done: the learned models (`bot2.py`, +37%). Next, in order of expected gain per 
 - Run long jobs with nohup and watch them with Monitor. Batch the settings into one sweep, so there is one notification per setting.
 - Use subagents only for heavy reading or analysis whose raw output we don't need; each one starts cold.
 - Start a fresh session from this file when the conversation gets long.
+
+## Other teams' public repos (checked Sat 14 Nov ~04:30)
+
+GitHub search "spread junction", "spread bahn", "spread dispatch", "junction26 spread": ink-waffle/junction26-spread,
+expires/spreadbahn-junction, trongduc2206/lightning-mcqueen, TomTom1800/junction2026_spread_noBrainers,
+aapolipponen/spread-dispatcher, antonTan96/junction26_spread, pipiland2612/spread-bahn-agent (levels 1-3 only),
+cappuch/spread-dispatcher, lilso-andy/spread-dispatcher.
+**expires/spreadbahn-junction claims ≈ €13,400/week at level 8** (README table), with the same core as ours
+(argmax (p − E[cost] − P(late)·(refund+λ))·P(win|p), λ = €80). Their biggest steps: dealer trust + "unbiased competitor
+learning" + SLA fix (5.4k → 11.5k), **return-trip pairing +10.5%** (B starts near A's drop-off and ends near A's start,
+one gig at 0.75× the summed typical fee), note parser +€798 (failed visits 58 → 1), P(late) ×0.6 +€540, price-war /
+outage regime learner +€546. Fees: hold each order until 36 h before its last safe pickup, open 0.9×, fixed steps.
+The first GitHub check did not show a LICENSE file. The team later confirmed that participant code is MIT-licensed under
+the challenge requirements, so code reuse is authorized on that basis.
+
+## Session of Sat 14 Nov, ~04:00: setup on ayo's Linux machine, margin sweep
+
+- **Setup (NixOS):** `python3 -m venv ../.venv && ../.venv/bin/pip install https://spread.bahnexpress.com/kit/spread-0.1.0-py3-none-any.whl numpy pandas scipy scikit-learn certifi`
+  (sklearn 1.9.1: both pickles load). `env.sh` is now portable: relative venv, and on NixOS it puts a 64-bit
+  `libstdc++` and `libz` from /nix/store on `LD_LIBRARY_PATH`. Shell scripts use `#!/usr/bin/env bash` (NixOS has no /bin/bash).
+  `.env` needs `SPREAD_KEY` (the team key, not `SPREAD_EVENT_CODE`, which the server rejects with 401).
+- **New knob `order_cost`** (bot2.py): fixed cost per car, cents, added to each option's cost in the pricing optimiser.
+  Reproduce: `./ml_bench.sh 'order_cost_600|bot2.py|1|{"order_cost":600}'`.
+
+| Change (baseline €7,389, worst 94.8%) | €/week | Worst on time | Verdict |
+|---|---|---|---|
+| `order_cost` 600 | 7,534 | 95.4% (mean 97.3%) | +€145, likely noise, slightly safer |
+| `order_cost` 1200 | 7,250 | 96.5% (mean 97.9%) | worse |
+| `order_cost` 2000, `late_pen` 2500 / 10000 | not run | | sweep stopped to free slots |
+
+- Careful: `pkill -f bench.py` also matches the shell running it; kill bench jobs by PID.
+
+## expires/spreadbahn-junction on our seeds (Sat 14 Nov ~04:45)
+
+`dispatch.py --level 8 --seedlist bench-1,...,bench-8 --parallel 7 --tag exp-bench` (their repo, unchanged; log `logs/expires-bench.log`):
+mean **€12,255/week, ranked 7/8, worst week 82.5%** (bench-4; also 92.0% and 92.4%). Per seed vs bot2 baseline:
+bench-1 13,824 / 9,578; -2 11,029 / 5,143; -3 14,348 / 7,671; -4 7,085 (82.5%, unranked) / 6,565; -5 15,257 / 7,945;
+-6 12,558 / 6,702; -7 11,476 / 6,618; -8 12,461 / 8,889.
+The repo page did not show a LICENSE file during the initial check. The team confirms participant code is MIT-licensed
+under the challenge requirements. KasperiBlomberg/EX-ACTUM-BAHN also has an explicit MIT license. Pairing, note parsing,
+and lateness pricing can be ported or reused with attribution.
+
+## GitHub search 2 (Sat 14 Nov ~05:15, logged in): 2 more Spread repos that matter
+
+Code search on `referenceFeeCents`, `lastPickupAt`, `boardRun` etc. plus repo search. New: **marta-chlebek/hackjunction-2026**
+(Python, €8.6k/week level 8 on 6 seeds, 6/6 ranked, holdout €8.7k; EV(x)=P_win·(xL − C − p_late(ρxL+λ)), λ €500 at level 8;
+initial check did not show a licence) and **source-exp/RoutePulse** (TypeScript, **#9 on the board**, round "Saturday 00:00" €75.5k = 13.3/16.8/12.8/15.7/16.8k,
+all ≥ 94% on time; their 5-seed bench €82.4k; participant code reuse follows the team's MIT confirmation). Also vaip441/junction26, UfukBC/Junction26 (not Spread).
+
+**RoutePulse strategy (from code):** (1) competitor = world log-level (Bayesian, precision-weighted) + day offset + distance slope
++ fixed per-place lane effects fitted on 50 worlds + short-hop lift (+13% under 48 km) + dealer trust; detects the price-war day
+and the outage region by likelihood ratio, each used once a week. P(win) = sigmoid(−13·x) above the estimate, −9.8 below, times
+a second sigmoid when the faster option is left unquoted. (2) Fees: **opening fee 0.81–0.85× typical**, with additive uplifts
+from driver pools within 30 km of pickup/delivery (+0.03…+0.12), route km (>260 +0.07, >400 +0.06), private address (+0.14/+0.16),
+trade-in (+0.14), experienced (+0.18), charging, evening/Saturday (+0.06); steps clamped out of the night. (3) **Bundles of 2–3
+orders in one gig** (`findBestTwoOrderBundle`, `tryExtendTwoToThreeOrderBundle`, 12 h cap). (4) **Direct offers at scale**:
+2,500–4,400 offers/week from a `DirectOfferTracker` of viewers/finishing drivers (their own audit flags this as a final-clock
+risk: 20 actions/s). (5) Shadow costs in the quote: portfolio pace/congestion (≤0.85× ref), anti-retaliation when the
+dealer win rate > 65%, minimum margin floor. (6) Note parser (notes.ts) and opening-hours planner (planner.ts).
+So the top-10 recipe = soft risk model instead of hard cutoffs, place-level fee model, bundling, offers, notes.
+
+## RoutePulse Python port (Sun 15 Nov)
+
+The existing `bot4.py` + `rp/` implementation is a Python port of source-exp/RoutePulse. With the team's confirmation
+that participant code is MIT-licensed, this is the current lead candidate. I ran it serially on `bench-1`…`bench-8`
+and compared every action batch with the saved TypeScript RoutePulse run on the same seed. All eight action logs are
+identical, and the outcomes match exactly:
+
+| Seed | Margin | On time |
+|---|---:|---:|
+| bench-1 | €15,963.45 | 97.8% |
+| bench-2 | €11,532.72 | 98.9% |
+| bench-3 | €17,117.29 | 96.5% |
+| bench-4 | €13,479.64 | 95.6% |
+| bench-5 | €18,139.08 | 98.0% |
+| bench-6 | €15,284.06 | 97.4% |
+| bench-7 | €15,568.15 | 94.3% |
+| bench-8 | €15,827.44 | 99.2% |
+
+Mean **€15,363.98/week**, ranked 8/8, worst on-time **94.3%**. Our prior `bot2.py` baseline was €7,389/week on the same
+seeds, so RoutePulse is about 2.08× the margin. The saved verification logs are `logs/rp-py-verified-bench-*.log`
+and `logs/rp-py-verified-bench-*.jsonl`; `python rp_diff.py logs/rp-ts-bench-N.jsonl logs/rp-py-verified-bench-N.jsonl`
+reproduces each action comparison (bench-2's Python log is `logs/rp-py-bench-2.jsonl`).
+
+`board.sh` and `board2.sh` now use `bot4.py` serially for ranking runs. Practice action and score replay are verified;
+final-clock timing and restart behavior still need a rehearsal before relying on `bot4.py --final`.
+
+**Live ranking round, Season 11 "Sunday 03:00":** RoutePulse completed all five runs, all ranked. Combined margin
+€73,694.16 (mean €14,738.83/week), aggregate on-time 97.4%. The board showed **rank 20** when checked after the fifth
+run; placements can change while the round is open.

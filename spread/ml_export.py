@@ -1,5 +1,5 @@
 """Exports the reveal of every ended level 8 practice world (not a ranking run) into logs/reveal-<id>/.
-Skips worlds already exported. Run: . ./env.sh && ../.venv/bin/python ml_export.py"""
+Skips worlds already exported. Run: . ./env.sh && "$SPREAD_PYTHON" ml_export.py"""
 import os, subprocess, sys, time
 from spread.client import Client
 

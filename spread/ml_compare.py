@@ -1,5 +1,5 @@
 """Prints the with/without table of the learned-model benches from logs/bench.jsonl.
-    ../.venv/bin/python ml_compare.py [name ...]        default: clock ml ml-win ml-fee base-oos ml-oos
+    "$SPREAD_PYTHON" ml_compare.py [name ...]        default: clock ml ml-win ml-fee base-oos ml-oos
 For each bench: mean margin per week, weeks ranked, mean and worst on-time share, mean orders and margin per order,
 and the margin per seed. A name used more than once means its latest entry."""
 import json
