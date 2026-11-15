@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Survivor · Live Room</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">S</span><div><strong>Survivor</strong><small>AGENT OBSERVATORY</small></div></div>
+      <div class="connection"><span class="pulse"></span><span id="connection-label">Connecting</span><span class="divider"></span><span id="updated-label">—</span></div>
+    </header>
+
+    <main>
+      <section class="hero-row">
+        <div><div class="eyebrow">MULTI-AGENT SOCIAL STRATEGY</div><h1>Live room</h1><p>Watch decisions, alliances, private deals, and votes unfold.</p></div>
+        <button id="pause-button" class="quiet-button" type="button">Pause updates</button>
+      </section>
+
+      <div class="notice"><span class="notice-icon">i</span><span>Local games update live. Harbor keeps its game state isolated until a trial finishes, so Harbor runs appear here after collection. This spectator view includes private messages and NPC state that the agents cannot see.</span></div>
+
+      <section class="layout">
+        <aside class="run-panel panel">
+          <div class="panel-heading"><div><div class="eyebrow">SESSIONS</div><h2>Agent runs</h2></div><span class="count-pill" id="run-count">0</span></div>
+          <div class="filter-row"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="running">Live</button><button class="filter" data-filter="completed">Saved</button></div>
+          <div id="run-list" class="run-list"><div class="empty">Looking for game snapshots…</div></div>
+          <div class="run-footnote">Start a local run with <code>scripts/local_runs.py</code> to watch each game update.</div>
+        </aside>
+
+        <section class="game-panel">
+          <div id="empty-state" class="panel empty-state"><div class="empty-orbit">✦</div><h2>No game selected</h2><p>Choose a live or saved game to inspect its state and event history.</p></div>
+          <div id="game-view" class="game-view hidden">
+            <div class="panel game-heading">
+              <div class="game-title"><div class="eyebrow" id="game-source">LOCAL GAME</div><h2 id="game-name">—</h2><div class="subline" id="game-subline">—</div></div>
+              <div class="phase-box"><span class="phase-dot"></span><div><small>CURRENT PHASE</small><strong id="phase-label">—</strong></div><b id="round-label">ROUND —</b></div>
+            </div>
+
+            <div class="stat-grid">
+              <div class="stat panel"><span>ALIVE</span><strong id="alive-stat">—</strong><small>players remaining</small></div>
+              <div class="stat panel"><span>DEALS</span><strong id="deal-stat">—</strong><small>accepted / proposed</small></div>
+              <div class="stat panel"><span>REWARD</span><strong id="reward-stat">—</strong><small>verified game score</small></div>
+              <div class="stat panel"><span>WINNER</span><strong id="winner-stat">—</strong><small>jury result</small></div>
+            </div>
+
+            <div class="content-grid">
+              <section class="panel players-panel"><div class="panel-heading"><div><div class="eyebrow">TABLE</div><h2>Players</h2></div><span class="micro-label">ASH IS THE EVALUATED AGENT</span></div><div id="players" class="players-grid"></div></section>
+              <section class="panel feed-panel"><div class="panel-heading"><div><div class="eyebrow">GAME LOG</div><h2>Recent events</h2></div><button id="scroll-latest" class="icon-button" title="Jump to latest">↓</button></div><div id="events" class="event-list"></div></section>
+            </div>
+
+            <details class="panel hidden-state"><summary><span><span class="eyebrow">OPERATOR INSPECTOR</span><strong>Private goals &amp; trust state</strong></span><span class="lock">SPECTATOR ONLY</span></summary><div id="npc-state" class="npc-state"></div></details>
+          </div>
+        </section>
+      </section>
+    </main>
+    <footer><span>Survivor AI · read-only observer</span><span>Updates every second</span></footer>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
