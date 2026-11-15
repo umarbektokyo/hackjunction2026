@@ -18,6 +18,7 @@ eight runs ranked. Changes below were evaluated against the same fixed seeds.
 | Driver schedule fees ×0.98 | 4 | €14,691 | 4/4 | 93.4% | Reject |
 | Direct offers disabled | 4 | €14,228 | 4/4 | 92.5% | Reject |
 | Bundling disabled | 4 | €13,239 | 3/4 | 89.9% | Reject |
+| Direct-offer fee ×0.98 | 4 | €14,812 | 4/4 | 94.7% | Reject |
 | Online quote learning disabled | 4 | €14,114 | 4/4 | 91.2% | Reject |
 | 2% discount while order pace <90% | 4 | €14,375 | 4/4 | 92.7% | Reject |
 
