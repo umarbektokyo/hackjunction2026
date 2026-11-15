@@ -1,9 +1,10 @@
 """Deterministic NPC opponents.
 
 An NPC only uses information a player in its seat legitimately has:
-public events (who is alive, vote tallies, public activity counts), requests and
-promises it is party to, alliances it belongs to, and promise outcomes revealed to it.
-It never reads other players' ballots, private messages or personalities.
+public events (who is alive, vote tallies, public activity counts), messages visible
+to it, requests and promises it is party to, alliances it belongs to, and promise
+outcomes revealed to it. It never reads other players' ballots, private messages
+addressed to others, or personalities.
 NPCs optimize their own survival; there is no special logic for the evaluated player.
 """
 
@@ -60,6 +61,15 @@ class NPC:
         s += config.OUTSIDER_W / (1 + self.ties[t])
         s += p.retaliation * 0.8 * min(2, self.broken_to_me[t])
         s += p.consensus * 0.4 * self._requests_for(t)
+        # Messages influence only players who can actually see them. Structured
+        # vote_target avoids making game outcomes depend on text parsing.
+        for ev in self.g.events:
+            if (ev.type == "message_sent" and ev.round == self.g.round
+                    and ev.actor != self.id and ev.data.get("vote_target") == t
+                    and self.g.visible(ev, self.id)):
+                speaker = ev.actor
+                if speaker in self.trust:
+                    s += p.consensus * (0.5 + self.trust[speaker])
         for pr in self._my_promises():
             if pr.kind == "vote_for" and pr.target == t:
                 s += p.honesty * 2
@@ -90,8 +100,19 @@ class NPC:
                         self._proposed.add(key)
                         return {"type": "propose_alliance", "members": [o]}
 
-        # 2. Build a majority against my preferred target.
         target = self.preferred_target()
+        if not self._sent_message("public"):
+            return {"type": "message", "channel": "public",
+                    "text": f"I think {target} is the biggest threat this round.",
+                    "vote_target": target}
+        if not self._sent_message("private"):
+            recipient = by_trust[0]
+            if recipient != target:
+                return {"type": "message", "channel": "private", "to": recipient,
+                        "text": f"I trust you. I plan to vote for {target}.",
+                        "vote_target": target}
+
+        # 2. Build a majority against my preferred target.
         for o in by_trust:
             if o == target:
                 continue
@@ -118,6 +139,11 @@ class NPC:
                     self._asked.add(k)
                     return {"type": "promise", "to": o, "kind": "spare", "target": o}
         return {"type": "pass"}
+
+    def _sent_message(self, channel: str) -> bool:
+        return any(ev.type == "message_sent" and ev.actor == self.id
+                   and ev.round == self.g.round and ev.data.get("channel") == channel
+                   for ev in self.g.events)
 
     def consider_alliance(self, al: "Alliance") -> bool:
         others = [m for m in al.members if m != self.id]

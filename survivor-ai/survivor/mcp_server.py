@@ -100,6 +100,17 @@ def offer_promise(to: str, kind: Literal["spare", "vote_for"], target: str = "")
 
 
 @server.tool()
+def send_message(channel: Literal["public", "private"], text: str,
+                 to: str = "", vote_target: str = "") -> dict[str, Any]:
+    """Uses your slot. Send one public broadcast or one private message per round.
+    Private messages are visible only to you and the recipient. Messages can include
+    an optional vote_target to signal whom you want people who see the message to vote for.
+    Text is limited to 240 characters."""
+    return _act({"type": "message", "channel": channel, "text": text,
+                 "to": to, "vote_target": vote_target})
+
+
+@server.tool()
 def respond(item_id: str, accept: bool) -> dict[str, Any]:
     """Does not use your slot. Accept or decline an alliance proposal or promise request
     listed under waiting_for_your_answer. Accepting a request creates a promise from you.

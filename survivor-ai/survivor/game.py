@@ -17,7 +17,8 @@ import random
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from .config import JURY, PERSONALITIES, RULES_VERSION, TRUST, GameConfig
+from .config import (JURY, MESSAGE_MAX_CHARS, MESSAGES_PER_CHANNEL_PER_ROUND,
+                     PERSONALITIES, RULES_VERSION, TRUST, GameConfig)
 
 DISCUSSION, VOTING, REVOTE, FINISHED = "discussion", "voting", "revote", "finished"
 PROMISE_KINDS = ("spare", "vote_for")
@@ -28,6 +29,8 @@ def rules_hash(cfg: GameConfig) -> str:
     from . import config
     blob = json.dumps({
         "version": RULES_VERSION, "cfg": {k: v for k, v in asdict(cfg).items() if k != "seed"},
+        "communication": {"messages_per_channel_per_round": MESSAGES_PER_CHANNEL_PER_ROUND,
+                           "message_max_chars": MESSAGE_MAX_CHARS},
         "personalities": {k: asdict(v) for k, v in PERSONALITIES.items()},
         "trust": asdict(TRUST), "jury": asdict(JURY),
         "threat_scale": config.THREAT_SCALE, "outsider_w": config.OUTSIDER_W,
@@ -253,6 +256,8 @@ class Game:
             result = self._request(actor, action["to"], action["kind"], action["target"])
         elif kind == "promise":
             result = self._promise(actor, action["to"], action["kind"], action["target"])
+        elif kind == "message":
+            result = self._send_message(actor, action)
         elif kind == "leave_alliance":
             result = self._leave_alliance(actor, action["alliance_id"])
         else:
@@ -266,6 +271,33 @@ class Game:
             raise ActionError(f"{target!r} is not a living player")
         if target == actor and not allow_self:
             raise ActionError("target cannot be yourself")
+
+    def _send_message(self, actor: str, action: dict[str, Any]) -> dict[str, Any]:
+        channel = action.get("channel")
+        if channel not in ("public", "private"):
+            raise ActionError("channel must be 'public' or 'private'")
+        text = action.get("text")
+        if not isinstance(text, str) or not text.strip() or len(text) > MESSAGE_MAX_CHARS:
+            raise ActionError(f"message text must contain 1-{MESSAGE_MAX_CHARS} characters")
+        sent = sum(e.type == "message_sent" and e.actor == actor and e.round == self.round
+                   and e.data.get("channel") == channel for e in self.events)
+        if sent >= MESSAGES_PER_CHANNEL_PER_ROUND:
+            raise ActionError(f"you have already sent a {channel} message this round")
+        vote_target = action.get("vote_target") or None
+        if vote_target is not None:
+            self._check_target(actor, vote_target)
+        if channel == "public":
+            recipient = None
+            audience = None
+        else:
+            recipient = action.get("to")
+            if not isinstance(recipient, str):
+                raise ActionError("private messages require a living recipient in 'to'")
+            self._check_target(actor, recipient)
+            audience = [actor, recipient]
+        self._log("message_sent", actor, audience, channel=channel, to=recipient,
+                  text=text.strip(), vote_target=vote_target)
+        return {"ok": True, "channel": channel, "to": recipient}
 
     def _propose_alliance(self, actor: str, members: list[str]) -> dict[str, Any]:
         others = sorted(set(m for m in members if m != actor))
@@ -390,7 +422,7 @@ class Game:
             result = self._respond(me, action["item_id"], bool(action["accept"]))
         elif kind == "vote":
             result = self._cast_vote(me, action["target"])
-        elif kind in ("propose_alliance", "request", "promise", "leave_alliance", "pass"):
+        elif kind in ("propose_alliance", "request", "promise", "message", "leave_alliance", "pass"):
             if self.phase != DISCUSSION:
                 raise ActionError(f"{kind} is only allowed during discussion (phase is {self.phase})")
             if not self.slot_queue and kind == "pass":

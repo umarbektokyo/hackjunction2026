@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-RULES_VERSION = "1.0"
+RULES_VERSION = "1.1"
+
+# Communication is limited by channel and round. Message bodies are flavor and
+# information; an explicit vote_target is the deterministic signal NPCs weigh.
+MESSAGES_PER_CHANNEL_PER_ROUND = 1
+MESSAGE_MAX_CHARS = 240
 
 PLAYER_NAMES = ["ash", "bea", "cyd", "dex", "eve", "fin", "gil", "hal"]
 EVALUATED = "ash"
