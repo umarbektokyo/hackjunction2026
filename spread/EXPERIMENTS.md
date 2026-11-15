@@ -38,3 +38,13 @@ their complexity: disabling direct offers reduced the four-world mean by
 €839/week; disabling bundling reduced it by €1,828/week and made one world
 unranked. Disabling online quote learning reduced the mean by €953/week.
 Keep these features enabled while tuning how they are used.
+
+## Pairing hold window
+
+The default waits 22–32 minutes for a compatible second order before posting a
+single-order gig. Since another public bot reported a gain from return-trip
+pairing, I tested 1.5× and 2× waits on `bench-1`…`bench-4` against the current
+four-seed baseline (€14,523/week, 97.2% mean on time, worst 95.6%). The 1.5×
+window scored €14,054/week (−€469), 96.5% mean on time, worst 93.4%. The 2×
+window scored €14,407/week (−€116), 96.7% mean on time, worst 93.4%. Neither
+added consistent order volume. Keep the existing 22–32 minute window.
