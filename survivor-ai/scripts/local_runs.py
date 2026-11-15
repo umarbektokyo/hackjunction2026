@@ -1,11 +1,12 @@
-"""Fast development runs without Docker: one local game server per game, Claude Code in
-headless mode as the player, many games in parallel. Same engine, same instruction and the
-same MCP tools as the Harbor tasks; the official numbers still come from Harbor.
+"""Fast development runs without Docker: one local game server per game, Codex CLI in
+non-interactive mode as the player, many games in parallel. Same engine, instruction and MCP
+tools as the Harbor tasks; the official numbers still come from Harbor.
 
-The player gets no built-in tools at all (--tools ""), only the `survivor` MCP server, and runs
-in an empty directory with no user/project settings, so it cannot read the engine source.
+The player runs in an empty directory with user config ignored, so it cannot read the engine
+source. Codex uses the local Codex CLI sign-in; no API key is needed.
 
-    nix develop -c uv run python scripts/local_runs.py --model claude-haiku-5-5 --seeds 101-105 --k 3 -j 15
+    nix develop -c uv run python scripts/local_runs.py --model gpt-5.6-terra --seeds 101-105 --k 3 -j 15
+    nix develop -c uv run python scripts/local_runs.py --model gpt-5.6-luna --seeds 101-105 --k 3 -j 15
 """
 
 from __future__ import annotations
@@ -85,23 +86,32 @@ async def one_game(model: str, seed: int, attempt: int, out: Path, timeout: floa
     try:
         server, port = await start_server(seed, gdir)
         with tempfile.TemporaryDirectory() as play_dir:
-            cfg = Path(play_dir) / "mcp.json"
-            cfg.write_text(json.dumps({"mcpServers": {"survivor": {"type": "http", "url": f"http://127.0.0.1:{port}/mcp"}}}))
-            cmd = ["claude", "-p", instruction(seed), "--model", model, "--tools", "",
-                   "--strict-mcp-config", "--mcp-config", str(cfg), "--allowedTools", "mcp__survivor",
-                   "--setting-sources", "", "--no-session-persistence",
-                   "--output-format", "stream-json", "--verbose"]
+            game_prompt = (
+                "Play this Survivor game using only the survivor MCP tools. Do not inspect or "
+                "modify local files, run shell commands, or use other tools. Take actions until "
+                "the game is over.\n\n" + instruction(seed)
+            )
+            endpoint = f"http://127.0.0.1:{port}/mcp"
+            cmd = ["codex", "exec", "--model", model, "--cd", play_dir,
+                   "--skip-git-repo-check", "--ephemeral", "--ignore-user-config",
+                   "--sandbox", "read-only", "--json",
+                   "-c", f'mcp_servers.survivor.url="{endpoint}"',
+                   "-c", "mcp_servers.survivor.enabled=true"]
             if effort:
-                cmd += ["--effort", effort]
-            player_env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE_CODE_SESSION")}
-            player_env.pop("CLAUDECODE", None)
+                cmd += ["-c", f'model_reasoning_effort="{effort}"']
+            cmd += [game_prompt]
+            player_env = os.environ.copy()
             with open(gdir / "transcript.jsonl", "w") as tr, open(gdir / "player.err", "w") as er:
                 proc = await asyncio.create_subprocess_exec(*cmd, cwd=play_dir, stdout=tr, stderr=er, env=player_env)
                 try:
                     await asyncio.wait_for(proc.wait(), timeout)
                 except asyncio.TimeoutError:
                     proc.kill()
+                    await proc.wait()
                     status = "timeout"
+                else:
+                    if proc.returncode and status == "ok":
+                        status = f"infra-player-error: Codex exited with status {proc.returncode}"
     except Exception as e:  # infrastructure failure: report it, never score it as play
         status = f"infra-error: {e}"
     finally:
@@ -110,7 +120,6 @@ async def one_game(model: str, seed: int, attempt: int, out: Path, timeout: floa
                 server.terminate()
             await server.wait()
     log = json.loads((gdir / "game.json").read_text()) if (gdir / "game.json").exists() else {}
-    usage = {}
     tr_path = gdir / "transcript.jsonl"
     if tr_path.exists():
         for line in tr_path.read_text().splitlines():
@@ -118,16 +127,11 @@ async def one_game(model: str, seed: int, attempt: int, out: Path, timeout: floa
                 m = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if m.get("type") == "rate_limit_event" and (m.get("rate_limit_info") or {}).get("status") == "rejected":
-                status = "infra-rate-limited"  # the player was cut off by usage limits: not play
-            if m.get("type") == "result":
-                usage = {"cost_usd": m.get("total_cost_usd"), "num_turns": m.get("num_turns"),
-                         "result_subtype": m.get("subtype")}
-                if m.get("is_error") and status == "ok":
-                    status = f"infra-player-error: {str(m.get('result'))[:120]}"
+            if m.get("type") == "turn.failed" and status == "ok":
+                status = f"infra-player-error: {str(m.get('error'))[:120]}"
     row = {"model": model, "seed": seed, "attempt": attempt, "status": status,
            "reward": log.get("reward", 0.0), "placement": log.get("placement"), "terminal": log.get("terminal"),
-           "seconds": round(time.time() - t0), **usage}
+           "seconds": round(time.time() - t0)}
     (gdir / "row.json").write_text(json.dumps(row) + "\n")
     print(json.dumps(row), flush=True)
     return row
@@ -163,8 +167,7 @@ async def main() -> None:
     ok = [r for r in rows if not r["status"].startswith("infra")]
     if ok:
         mean = sum(r["reward"] for r in ok) / len(ok)
-        print(f"{a.model}: {len(ok)} games, mean reward {mean:.3f}, wins {sum(r['placement'] == 1 for r in ok)}, "
-              f"notional API cost ${sum(r.get('cost_usd') or 0 for r in ok):.2f} -> {out}")
+        print(f"{a.model}: {len(ok)} games, mean reward {mean:.3f}, wins {sum(r['placement'] == 1 for r in ok)} -> {out}")
 
 
 if __name__ == "__main__":

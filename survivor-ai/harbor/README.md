@@ -10,7 +10,23 @@ from `survivor/config.py` when the tasks are generated.
 
 Tested with Harbor 0.26.0 and the local Docker environment.
 
-## Run it
+## Run locally with Codex
+
+For local games without Docker or an API key, use the Codex CLI runner from `survivor-ai/`.
+It uses your existing Codex sign-in and connects Codex to each game's Survivor MCP server.
+Codex CLI must be installed and signed in, and the selected model must be available to your
+Codex account.
+
+```bash
+nix develop -c uv run python scripts/local_runs.py --model gpt-5.6-terra --seeds 101-105 --k 3 -j 15
+nix develop -c uv run python scripts/local_runs.py --model gpt-5.6-luna --seeds 101-105 --k 3 -j 15
+```
+
+The Codex runner uses an empty working directory, ignores user Codex settings, and runs with a
+read-only shell sandbox. The game is played through the configured `survivor` MCP server. These
+local runs are for development and comparison; the Harbor verifier remains the official score.
+
+## Run with Harbor
 
 All commands are run from `survivor-ai/`. The tasks are committed and self-contained;
 nothing has to be built or generated first. Docker must be running.
@@ -21,8 +37,8 @@ alias harbor='uv tool run --from harbor==0.26.0 harbor'   # or: uv tool install 
 
 | Role | Command | Expected |
 |---|---|---|
-| **Reference run** (strong model) | `harbor run -p harbor/tasks -a opencode -m anthropic/<strong-model> -k 3` | high mean reward |
-| **Evaluated agent** (weaker model) | `harbor run -p harbor/tasks -a opencode -m anthropic/<weak-model> -k 3` | lower mean reward |
+| **Reference run** (strong model) | `CODEX_FORCE_AUTH_JSON=1 harbor run -p harbor/tasks -a codex -m openai/gpt-5.6-terra -k 3` | measured mean reward 0.417 |
+| **Evaluated agent** (lower effort) | `CODEX_FORCE_AUTH_JSON=1 harbor run -p harbor/tasks -a codex -m openai/gpt-5.6-luna --ak reasoning_effort=low -k 3` | measured mean reward 0.225 |
 | Baseline: do nothing | `harbor run -p harbor/tasks -a nop` | 0 on every task |
 | Baseline: stop early | `SURVIVOR_POLICY=stop_early harbor run -p harbor/tasks -a oracle` | 0 on every task |
 | Pipeline sanity check (scripted policy) | `harbor run -p harbor/tasks -a oracle` | see table below |
@@ -31,12 +47,17 @@ alias harbor='uv tool run --from harbor==0.26.0 harbor'   # or: uv tool install 
 trials at a time, `-i survivor-seed-101` to run a single task, `-o <dir>` to change the
 output directory.
 
-The **reference run and the evaluated agent are the same agent (OpenCode) with
-different models**; the gap between them is the result. `-a oracle` is not the
-reference: it runs `solution/solve.sh`, a small scripted policy that plays through the
-same MCP tools. It exists to prove the pipeline end to end (MCP server, result
-collection, separate verifier) without spending LLM credits, and its rewards must
-equal an in-process run of the same policy.
+The **reference run and the evaluated agent are both Codex**, using Terra and Luna
+respectively; the evaluated run also sets Luna's reasoning effort to `low`. In the
+recorded 15-trial runs, Terra averaged 0.417 and Luna at low effort averaged 0.225,
+with no errored trials. Treat these as observed results, not a guarantee: model
+sampling and game seeds affect scores. The standard Luna run (default effort) averaged
+0.401 on the same five task seeds, so this comparison demonstrates the effect of the
+lower-effort evaluated configuration; it does not establish a general Terra-versus-Luna
+ranking. `-a oracle` is not the reference: it runs `solution/solve.sh`, a small scripted
+policy that plays through the same MCP tools. It exists to prove the pipeline end to
+end (MCP server, result collection, separate verifier) without spending LLM credits,
+and its rewards must equal an in-process run of the same policy.
 
 The stop-early baseline plays one round passively through MCP and then stops calling
 tools. It uses the oracle agent with `SURVIVOR_POLICY=stop_early`, which
@@ -44,61 +65,29 @@ tools. It uses the oracle agent with `SURVIVOR_POLICY=stop_early`, which
 `passive` also exists). On NixOS without the docker group, wrap the whole command:
 `SURVIVOR_POLICY=stop_early sg docker -c "uv tool run --from harbor==0.26.0 harbor run …"`.
 
-### Model names and API keys for OpenCode
+### Codex sign-in
 
-Harbor's OpenCode agent requires `-m <provider>/<model>` and reads the provider's API
-key from the **host environment** (or from `--env-file <file>`) and forwards it into
-the agent container:
-
-| `-m` value | Key that must be set |
-|---|---|
-| `anthropic/<model-id>` e.g. `anthropic/claude-haiku-4-5` | `ANTHROPIC_API_KEY` |
-| `openai/<model-id>` | `OPENAI_API_KEY` |
-| `openrouter/<vendor>/<model-id>` e.g. `openrouter/anthropic/claude-haiku-4.5` | `OPENROUTER_API_KEY` |
-
-A different variable can be named with `--api-key-name <VAR>`, a different endpoint
-with `--base-url`. `harbor run … --dry-run` prints which key and base URL Harbor
-resolved without starting anything. Use the model ids your provider account actually
-offers; Harbor does not validate them.
+The Codex agent uses the Codex CLI and supports Codex's local `auth.json` login. Sign in to
+Codex on the host first, then run Harbor with `CODEX_FORCE_AUTH_JSON=1`; Harbor copies the
+host's `~/.codex/auth.json` into the isolated agent container for the trial. No provider API
+key is required. If your auth file is elsewhere, set `CODEX_AUTH_JSON_PATH` to its path.
 
 ```bash
-export ANTHROPIC_API_KEY=...
-harbor run -p harbor/tasks -a opencode -m anthropic/<strong-model> -k 3 --job-name reference
-harbor run -p harbor/tasks -a opencode -m anthropic/<weak-model>   -k 3 --job-name agent
+CODEX_FORCE_AUTH_JSON=1 harbor run -p harbor/tasks -a codex -m openai/gpt-5.6-terra -k 3 --job-name reference
+CODEX_FORCE_AUTH_JSON=1 harbor run -p harbor/tasks -a codex -m openai/gpt-5.6-luna --ak reasoning_effort=low -k 3 --job-name agent
 ```
 
-What Harbor does with the task's MCP declaration: `[[environment.mcp_servers]]` in
-`task.toml` becomes this entry in `~/.config/opencode/opencode.json` inside the agent
-container, so the game tools show up in OpenCode as `survivor_get_state`,
-`survivor_vote`, …:
+The recorded 15-trial summaries (`codex-terra`, `codex-luna`, and `codex-luna-low-n8`)
+are under `jobs/`. Terra: reward 0.417, mean placement 3.33, zero promises broken,
+zero errors. Luna at low effort: reward 0.225, mean placement 4.00, 0.73 promises
+broken per trial, zero errors. Luna at default effort scored 0.401, showing that the
+gap depends on the evaluated effort setting. The low-effort run used Harbor concurrency
+8; the default runs used concurrency 4. Concurrency shortened wall time but is not a
+gameplay intervention.
 
-```json
-{"mcp": {"survivor": {"type": "remote", "url": "http://mcp-server:8000/mcp", "oauth": false}}}
-```
-
-OpenCode is then started as
-`opencode --model=<provider>/<model> run --format=json --thinking --dangerously-skip-permissions -- "<instruction.md>"`.
-OpenCode 1.19.5 is pre-installed in the agent image the same way Harbor installs it,
-so Harbor detects it and skips its per-trial install (about 3 minutes). Checked
-without an API key: `harbor run … -a opencode --install-only` succeeds, and
-`opencode mcp list` in the agent container reports `survivor … connected`.
-
-### Other agents: Claude Code
-
-`-a claude-code` also works on these tasks without changes. Harbor installs Claude
-Code into the agent container at trial start (native installer, about 30 seconds because
-the image already has curl, node, npm and procps), writes the MCP server to
-`$CLAUDE_CONFIG_DIR/.claude.json` as `{"mcpServers": {"survivor": {"type": "http",
-"url": "http://mcp-server:8000/mcp"}}}`, and runs with `--permission-mode=bypassPermissions`.
-Authentication is `ANTHROPIC_API_KEY`, or a subscription token:
-
-```bash
-# .env:  CLAUDE_CODE_OAUTH_TOKEN=...   (from `claude setup-token`)
-#        CLAUDE_FORCE_OAUTH=1          (only needed if ANTHROPIC_API_KEY is also set)
-harbor run -p harbor/tasks -a claude-code -m anthropic/<model> -k 3 --env-file .env
-```
-
-Checked with `--install-only` (no model call): Claude Code 2.1.325 installs in `main`.
+Harbor adds the task's `[[environment.mcp_servers]]` entry to Codex's `config.toml`, so the
+agent gets the `survivor` game tools inside the task container. The task container installs
+Codex CLI at build time; Harbor detects it and skips the per-trial CLI install.
 
 ## Where results land
 
@@ -111,7 +100,7 @@ jobs/<job>/<task>__<id>/verifier/reward.json         {"reward": …, "terminal",
                                                       "rounds_survived", "jury_votes", "promises_broken"}
 jobs/<job>/<task>__<id>/verifier/details.json        winner, finalists, elimination order, jury votes, metrics
 jobs/<job>/<task>__<id>/artifacts/snapshot/game.json full spectator log of the game (every event and ballot)
-jobs/<job>/<task>__<id>/agent/                       agent logs (opencode.txt + trajectory, or oracle.txt)
+jobs/<job>/<task>__<id>/agent/                       agent logs (codex.txt + trajectory, or oracle.txt)
 ```
 
 `reward` is the score. The other keys in `reward.json` are diagnostics (Harbor only
@@ -125,7 +114,7 @@ tasks/survivor-seed-<S>/
   task.toml                       MCP server declaration, timeouts, collect hook, artifact
   instruction.md                  the player's brief: complete rules, scoring, tool list
   environment/
-    Dockerfile                    agent container `main`: Python, MCP client lib, OpenCode. No game code.
+    Dockerfile                    agent container `main`: Python, MCP client lib, Codex CLI. No game code.
     docker-compose.yaml           adds the `mcp-server` sidecar with SURVIVOR_SEED=<S>
     mcp-server/                   sidecar image: game engine + MCP server (vendored copy of survivor/)
   solution/
@@ -160,7 +149,7 @@ tasks/survivor-seed-<S>/
   that keeps rewriting the reward file still produced reward 0 from the verifier.
 
 `harbor lint` passes with default rules. With `--select ALL` one finding remains,
-`root-agent`: the agent runs as root in `main` on purpose (OpenCode install and tool
+`root-agent`: the agent runs as root in `main` on purpose (Codex install and tool
 use need no special handling), and the design above does not depend on the agent
 being unprivileged.
 
