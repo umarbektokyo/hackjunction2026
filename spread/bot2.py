@@ -46,6 +46,7 @@ DEFAULTS = {**BASE_DEFAULTS, **BEST,
             "late_refund": 0.35,     # share of the price refunded when late (25% typical, more when very late)
             "late_pen": 5000,        # extra cost of a late order, cents (trust halved, ranking risk)
             "cost_mult": 1.0,        # scales the expected fee, a safety margin
+            "order_cost": 0,         # fixed cost per car, cents (capacity / handling): prices cheap short drives up
             "hour_sd": 0.15,         # how far the market level may drift each hour
             "fee_model": 0,          # 1 = opening fee of each gig from the booking model (adds nothing measurable: off)
             "fm_min": 0.7, "fm_max": 1.3, "fm_step": 0.05,
@@ -149,7 +150,7 @@ class EvilDesk2(EvilDesk):
             slack = o["deadline"] - max(self.now, request["respondBy"]) - drive
             allowed[j] = ends_ok and slack >= p["min_slack"]
             c[j] = common + self.wA[j] + self.wC[j] * math.log(L[j] / ref) + x @ self.wG[j]
-            cost[j] = ref * (fee_hat[i] + self.other) + p_late[i] * p["late_pen"] + surcharge * L[j]
+            cost[j] = ref * (fee_hat[i] + self.other) + p_late[i] * p["late_pen"] + surcharge * L[j] + p["order_cost"] * len(legs)
             refund[j] = p_late[i] * p["late_refund"]
         self.market.advance(self.now)
         r_idx = self._optimise(c, L, cost, refund, allowed)

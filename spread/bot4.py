@@ -132,8 +132,8 @@ def play_final(world, params=None) -> None:
             return
 
 
-def run_final(client, params=None) -> dict:
-    world = None
+def run_final(client, params=None, world_id=None) -> dict:
+    world = client.world(world_id) if world_id else None
     while True:
         try:
             if world is None:
@@ -162,12 +162,13 @@ def main() -> None:
     ap.add_argument("--seed")
     ap.add_argument("--board", action="store_true")
     ap.add_argument("--final", action="store_true")
+    ap.add_argument("--world", help="play this world live from the stream, like the final (a practice world paced by pace.py)")
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--json", action="store_true", help="print the final score as one JSON line")
     ap.add_argument("--params", default="{}", help="JSON policy overrides: pricing, dispatch and online_learning")
     a = ap.parse_args()
     params = json.loads(a.params)
-    allowed = {"target_mult", "late_threshold_mult", "quote_mult", "lane_fit_mult", "cheap_lane_discount", "cheap_lane_cost_cap", "pace_discount", "driver_fee_mult", "offer_fee_mult", "direct_offers", "bundling", "online_learning"}
+    allowed = {"target_mult", "late_threshold_mult", "quote_mult", "lane_fit_mult", "cheap_lane_discount", "cheap_lane_cost_cap", "pace_discount", "driver_fee_mult", "offer_fee_mult", "direct_offers", "bundling", "online_learning", "min_quote_floor_cents", "d3_discount"}
     unknown = set(params) - allowed
     if unknown:
         ap.error(f"unknown policy parameter(s): {', '.join(sorted(unknown))}")
@@ -177,9 +178,9 @@ def main() -> None:
            or (k in bool_params and v not in (0, 1)) for k, v in params.items()):
         ap.error("policy multipliers must be positive numbers; direct_offers, bundling and online_learning must be 0 or 1")
     client = Client()
-    if a.final:
+    if a.final or a.world:
         try:
-            score = run_final(client, params)
+            score = run_final(client, params, a.world)
         except KeyboardInterrupt:
             sys.exit("Stopped. The final world keeps running without us; start again with --final to rejoin.")
         if score:

@@ -1,9 +1,9 @@
 """Fits the learned models from logs/ml_*.csv.gz (built by ml_tables.py), checks them on held-out seeds,
 and saves them to models.pkl for bot2.py.
 
-    ../.venv/bin/python ml_fit.py            fit, check on held-out seeds, save
-    ../.venv/bin/python ml_fit.py --quick    skip the cross-validation
-    ../.venv/bin/python ml_fit.py --out=models_v2.pkl   save elsewhere (benchmark with --params '{"models":"models_v2.pkl"}')
+    "$SPREAD_PYTHON" ml_fit.py            fit, check on held-out seeds, save
+    "$SPREAD_PYTHON" ml_fit.py --quick    skip the cross-validation
+    "$SPREAD_PYTHON" ml_fit.py --out=models_v2.pkl   save elsewhere (benchmark with --params '{"models":"models_v2.pkl"}')
 
 Models:
   win   P(the dealer takes our option k | our prices) - a multinomial logit: the dealer chooses among our offered
